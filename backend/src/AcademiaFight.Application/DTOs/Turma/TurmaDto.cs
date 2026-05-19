@@ -11,6 +11,7 @@ public class TurmaDto
     public string? Nivel { get; set; }
     public int CapacidadeMaxima { get; set; }
     public bool Ativo { get; set; }
+    public int TotalAlunos { get; set; }
 }
 
 public class CreateTurmaRequest

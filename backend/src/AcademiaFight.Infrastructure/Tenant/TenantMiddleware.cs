@@ -15,6 +15,10 @@ public class TenantMiddleware
         "/api/auth/register",
         "/api/auth/refresh",
         "/api/auth/logout",
+        "/api/auth/primeiro-acesso",
+        "/api/auth/recuperar-acesso",
+        "/api/auth/forgot-password",
+        "/api/auth/reset-password",
         "/api/public/",
         "/swagger",
         "/health"

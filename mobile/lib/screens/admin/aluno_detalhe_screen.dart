@@ -1,0 +1,667 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../../core/api_client.dart';
+import '../../core/constants.dart';
+
+class AdminAlunoDetalheScreen extends StatefulWidget {
+  final String alunoId;
+  const AdminAlunoDetalheScreen({super.key, required this.alunoId});
+
+  @override
+  State<AdminAlunoDetalheScreen> createState() => _AdminAlunoDetalheScreenState();
+}
+
+class _AdminAlunoDetalheScreenState extends State<AdminAlunoDetalheScreen> {
+  Map<String, dynamic>? _aluno;
+  String? _meId;
+  bool _loading = true;
+  String? _erro;
+  // Faixa mais recente aprovada por modalidade: { nomeModalidade -> { nome, cor } }
+  Map<String, Map<String, dynamic>> _faixasPorModalidade = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _erro = null; });
+    try {
+      final results = await Future.wait([
+        dio.get('/api/alunos/${widget.alunoId}'),
+        dio.get('/api/usuarios/me'),
+        dio.get('/api/graduacoes', queryParameters: {'alunoId': widget.alunoId}),
+      ]);
+      final body = results[0].data as Map<String, dynamic>;
+      final meBody = results[1].data as Map<String, dynamic>;
+      final gradBody = results[2].data as Map<String, dynamic>;
+
+      // Agrupa graduações aprovadas por modalidade, mantendo a mais recente (maior data)
+      final graduacoes = (gradBody['dados'] as List? ?? []).cast<Map<String, dynamic>>();
+      final Map<String, Map<String, dynamic>> faixasMod = {};
+      for (final g in graduacoes) {
+        if (g['aprovado'] != true) continue;
+        final modNome = g['nomeModalidade']?.toString() ?? 'Sem modalidade';
+        final dataExame = g['dataExame']?.toString() ?? '';
+        final existing = faixasMod[modNome];
+        if (existing == null || dataExame.compareTo(existing['_dataExame'] as String) > 0) {
+          faixasMod[modNome] = {
+            'nome': g['nomeFaixa'] ?? '',
+            'cor': g['corFaixa'] ?? '#FFFFFF',
+            '_dataExame': dataExame,
+          };
+        }
+      }
+
+      if (mounted) setState(() {
+        _aluno = body['dados'] as Map<String, dynamic>?;
+        _meId = (meBody['dados'] as Map<String, dynamic>?)?['id']?.toString();
+        _faixasPorModalidade = faixasMod;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _erro = 'Erro ao carregar aluno.');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _toggleAtivo() async {
+    final a = _aluno;
+    if (a == null) return;
+    final novoStatus = !(a['ativo'] == true);
+    final acao = novoStatus ? 'ativar' : 'desativar';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: kSurface,
+        title: Text('Confirmar', style: TextStyle(color: kText1)),
+        content: Text('Deseja $acao ${a['nome']}?', style: TextStyle(color: kText2)),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text('Cancelar', style: TextStyle(color: kText2))),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text('Confirmar', style: TextStyle(color: kPrimary))),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await dio.patch('/api/alunos/${widget.alunoId}/status', data: {'ativo': novoStatus});
+      _load();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: const Text('Erro ao alterar status.'), backgroundColor: kDanger, behavior: SnackBarBehavior.floating),
+        );
+      }
+    }
+  }
+
+  // ── Graduar ──────────────────────────────────────────
+
+  Future<void> _abrirGraduar() async {
+    // Carrega faixas e filtra pelas modalidades do aluno
+    List<Map<String, dynamic>> faixas = [];
+    try {
+      final res = await dio.get('/api/faixas');
+      faixas = (res.data['dados'] as List? ?? []).cast<Map<String, dynamic>>();
+    } catch (_) {}
+
+    if (!mounted) return;
+
+    // Modalidades em que o aluno está matriculado
+    final turmasDetalhes = (_aluno?['turmasDetalhes'] as List? ?? [])
+        .cast<Map<String, dynamic>>();
+    final modalidadesAluno = <String>{
+      for (final t in turmasDetalhes)
+        if (t['modalidadeId'] != null) t['modalidadeId'].toString(),
+    };
+
+    // Agrupa faixas por modalidade, filtrando apenas as do aluno
+    final Map<String, List<Map<String, dynamic>>> faixasPorMod = {};
+    for (final f in faixas) {
+      final modId = f['modalidadeId']?.toString() ?? '';
+      if (modalidadesAluno.isNotEmpty && !modalidadesAluno.contains(modId)) continue;
+      final modNome = f['nomeModalidade']?.toString() ?? 'Sem modalidade';
+      faixasPorMod.putIfAbsent(modNome, () => []).add(f);
+    }
+
+    // Se não filtrou nada (aluno sem turma), mostra tudo agrupado
+    if (faixasPorMod.isEmpty) {
+      for (final f in faixas) {
+        final modNome = f['nomeModalidade']?.toString() ?? 'Sem modalidade';
+        faixasPorMod.putIfAbsent(modNome, () => []).add(f);
+      }
+    }
+
+    Map<String, dynamic>? faixaSel;
+    final obsCtrl = TextEditingController();
+    bool gerarCobranca = false;
+    final valorCtrl = TextEditingController();
+    bool salvando = false;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: kSurface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text('Graduar Aluno', style: TextStyle(color: kText1, fontSize: 18, fontWeight: FontWeight.w800)),
+                    const Spacer(),
+                    IconButton(onPressed: () => Navigator.of(ctx).pop(), icon: Icon(Icons.close, color: kText2)),
+                  ],
+                ),
+                Text('${_aluno?['nome'] ?? ''}', style: TextStyle(color: kText2, fontSize: 13)),
+                const SizedBox(height: 16),
+                if (faixasPorMod.isEmpty)
+                  Text('Nenhuma faixa disponível.', style: TextStyle(color: kText2))
+                else
+                  ...faixasPorMod.entries.map((entry) => Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          entry.key.toUpperCase(),
+                          style: TextStyle(color: kPrimary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1),
+                        ),
+                      ),
+                      ...entry.value.map((f) {
+                        final cor = _parseCor(f['cor']?.toString());
+                        final sel = faixaSel?['id'] == f['id'];
+                        return GestureDetector(
+                          onTap: () => setModal(() => faixaSel = f),
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: sel ? kPrimary.withOpacity(0.15) : kBg,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: sel ? kPrimary : kBorder),
+                            ),
+                            child: Row(children: [
+                              Container(width: 14, height: 14, decoration: BoxDecoration(shape: BoxShape.circle, color: cor)),
+                              const SizedBox(width: 10),
+                              Expanded(child: Text(f['nome'] ?? '', style: TextStyle(color: kText1, fontSize: 13, fontWeight: FontWeight.w600))),
+                              if (sel) Icon(Icons.check_circle_rounded, color: kPrimary, size: 18),
+                            ]),
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 8),
+                    ],
+                  )),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: obsCtrl,
+                  style: TextStyle(color: kText1),
+                  maxLines: 2,
+                  decoration: InputDecoration(
+                    hintText: 'Observação (opcional)',
+                    hintStyle: TextStyle(color: kText2),
+                    filled: true, fillColor: kBg,
+                    contentPadding: const EdgeInsets.all(12),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kBorder)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kBorder)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kPrimary)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Toggle cobrança
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(color: kBg, borderRadius: BorderRadius.circular(10), border: Border.all(color: kBorder)),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text('Gerar cobrança financeira', style: TextStyle(color: kText1, fontSize: 13))),
+                      Switch(
+                        value: gerarCobranca,
+                        activeColor: kPrimary,
+                        onChanged: (v) => setModal(() => gerarCobranca = v),
+                      ),
+                    ],
+                  ),
+                ),
+                if (gerarCobranca) ...[
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: valorCtrl,
+                    style: TextStyle(color: kText1),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.,]'))],
+                    decoration: InputDecoration(
+                      hintText: 'Valor da cobrança (R\$)',
+                      hintStyle: TextStyle(color: kText2),
+                      prefixText: 'R\$ ',
+                      prefixStyle: TextStyle(color: kText2),
+                      filled: true, fillColor: kBg,
+                      contentPadding: const EdgeInsets.all(12),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kBorder)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kBorder)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kPrimary)),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: (salvando || faixaSel == null) ? null : () async {
+                      setModal(() => salvando = true);
+                      try {
+                        final hoje = DateTime.now();
+                        final dataExame = '${hoje.year}-${hoje.month.toString().padLeft(2, '0')}-${hoje.day.toString().padLeft(2, '0')}';
+                        await dio.post('/api/graduacoes', data: {
+                          'alunoId': widget.alunoId,
+                          'faixaId': faixaSel!['id'],
+                          'dataExame': dataExame,
+                          'professorId': _meId,
+                          'aprovado': true,
+                          'observacoes': obsCtrl.text.trim(),
+                        });
+                        if (gerarCobranca && valorCtrl.text.isNotEmpty) {
+                          final valor = double.tryParse(valorCtrl.text.replaceAll(',', '.')) ?? 0;
+                          if (valor > 0) {
+                            final hj = DateTime.now();
+                            final venc = '${hj.year}-${hj.month.toString().padLeft(2, '0')}-${hj.day.toString().padLeft(2, '0')}';
+                            await dio.post('/api/financeiro', data: {
+                              'alunoId': widget.alunoId,
+                              'tipo': 5, // Graduacao
+                              'status': 2, // Pendente
+                              'valor': valor,
+                              'descricao': 'Graduação - ${faixaSel!['nome']}',
+                              'dataVencimento': venc,
+                            });
+                          }
+                        }
+                        if (ctx.mounted) Navigator.of(ctx).pop();
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('${_aluno?['nome']} graduado para ${faixaSel!['nome']}!'), backgroundColor: kSuccess, behavior: SnackBarBehavior.floating),
+                          );
+                          _load();
+                        }
+                      } catch (e) {
+                        String msg = 'Erro ao graduar.';
+                        try { msg = ((e as dynamic).response?.data as Map?)?['mensagem'] ?? msg; } catch (_) {}
+                        if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(
+                          SnackBar(content: Text(msg), backgroundColor: kDanger, behavior: SnackBarBehavior.floating),
+                        );
+                      } finally {
+                        setModal(() => salvando = false);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kPrimary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: salvando
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text('Confirmar Graduação', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Vincular Turma ───────────────────────────────────
+
+  Future<void> _abrirVincularTurma() async {
+    List<Map<String, dynamic>> turmas = [];
+    try {
+      final res = await dio.get('/api/turmas');
+      final dados = res.data['dados'];
+      final list = dados is List ? dados : (dados is Map ? dados['items'] as List? ?? [] : []);
+      turmas = list.cast<Map<String, dynamic>>();
+    } catch (_) {}
+
+    if (!mounted) return;
+
+    Map<String, dynamic>? turmaSel;
+    bool salvando = false;
+
+    // Turmas já vinculadas
+    final turmasAtuais = (_aluno?['turmas'] as List? ?? []).map((t) => t.toString()).toSet();
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: kSurface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                child: Row(
+                  children: [
+                    Text('Vincular a uma Turma', style: TextStyle(color: kText1, fontSize: 18, fontWeight: FontWeight.w800)),
+                    const Spacer(),
+                    IconButton(onPressed: () => Navigator.of(ctx).pop(), icon: Icon(Icons.close, color: kText2)),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  shrinkWrap: true,
+                  itemCount: turmas.length,
+                  itemBuilder: (_, i) {
+                    final t = turmas[i];
+                    final nomeT = t['nome']?.toString() ?? '';
+                    final jaVinculado = turmasAtuais.contains(nomeT);
+                    final sel = turmaSel?['id'] == t['id'];
+                    return GestureDetector(
+                      onTap: jaVinculado ? null : () => setModal(() => turmaSel = t),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: jaVinculado ? kBorder.withOpacity(0.3) : sel ? kPrimary.withOpacity(0.15) : kBg,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: sel ? kPrimary : kBorder),
+                        ),
+                        child: Row(children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(nomeT, style: TextStyle(color: jaVinculado ? kText2 : kText1, fontSize: 13, fontWeight: FontWeight.w600)),
+                                if (t['modalidadeNome'] != null)
+                                  Text(t['modalidadeNome'], style: TextStyle(color: kText2, fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                          if (jaVinculado)
+                            Text('Já vinculado', style: TextStyle(color: kText2, fontSize: 11))
+                          else if (sel)
+                            Icon(Icons.check_circle_rounded, color: kPrimary, size: 18),
+                        ]),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: (salvando || turmaSel == null) ? null : () async {
+                      setModal(() => salvando = true);
+                      try {
+                        await dio.post('/api/matriculas', data: {
+                          'alunoId': widget.alunoId,
+                          'turmaId': turmaSel!['id'],
+                        });
+                        if (ctx.mounted) Navigator.of(ctx).pop();
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Vinculado à ${turmaSel!['nome']}!'), backgroundColor: kSuccess, behavior: SnackBarBehavior.floating),
+                          );
+                          _load();
+                        }
+                      } catch (e) {
+                        String msg = 'Erro ao vincular.';
+                        try { msg = ((e as dynamic).response?.data as Map?)?['mensagem'] ?? msg; } catch (_) {}
+                        if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(
+                          SnackBar(content: Text(msg), backgroundColor: kDanger, behavior: SnackBarBehavior.floating),
+                        );
+                      } finally {
+                        setModal(() => salvando = false);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kPrimary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: salvando
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text('Vincular', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _parseCor(String? hex) {
+    try { return Color(int.parse((hex ?? '').replaceAll('#', '0xFF'))); } catch (_) { return kPrimary; }
+  }
+
+  Color _finCor(String? s) {
+    if (s == 'Inadimplente') return kDanger;
+    if (s == 'Pendente') return kWarning;
+    return kSuccess;
+  }
+
+  String _formatFin(String? s) {
+    if (s == 'EmDia') return 'Em Dia';
+    return s ?? '';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final a = _aluno;
+    return Scaffold(
+      backgroundColor: kBg,
+      appBar: AppBar(
+        backgroundColor: kSurface,
+        foregroundColor: kText1,
+        elevation: 0,
+        title: Text(a?['nome'] ?? 'Aluno', style: TextStyle(color: kText1, fontWeight: FontWeight.w700)),
+        actions: [
+          if (a != null)
+            TextButton(
+              onPressed: _toggleAtivo,
+              child: Text(
+                a['ativo'] == true ? 'Desativar' : 'Ativar',
+                style: TextStyle(color: a['ativo'] == true ? kDanger : kSuccess, fontWeight: FontWeight.w700),
+              ),
+            ),
+        ],
+      ),
+      body: _loading
+          ? Center(child: CircularProgressIndicator(color: kPrimary))
+          : _erro != null
+              ? Center(child: Text(_erro!, style: TextStyle(color: kDanger)))
+              : a == null
+                  ? Center(child: Text('Aluno não encontrado.', style: TextStyle(color: kText2)))
+                  : RefreshIndicator(
+                      onRefresh: _load,
+                      child: ListView(
+                        padding: const EdgeInsets.all(16),
+                        children: [
+                          _buildCard([
+                            _buildAvatar(a['nome'] ?? ''),
+                            const SizedBox(height: 12),
+                            _row('Nome', a['nome']),
+                            _row('Email', a['email']),
+                            _row('Telefone', a['telefone']),
+                            _row('Nascimento', _formatDate(a['dataNascimento'])),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                _statusBadge(a['ativo'] == true),
+                                if (a['situacaoFinanceira'] != null)
+                                  Text(_formatFin(a['situacaoFinanceira'] as String?),
+                                      style: TextStyle(color: _finCor(a['situacaoFinanceira'] as String?), fontSize: 13, fontWeight: FontWeight.w700)),
+                              ],
+                            ),
+                          ]),
+                          const SizedBox(height: 12),
+                          // Graduação com botão
+                          _buildCard([
+                            Row(
+                              children: [
+                                Expanded(child: _sectionTitle('Graduação')),
+                                TextButton.icon(
+                                  onPressed: _abrirGraduar,
+                                  icon: Icon(Icons.military_tech_rounded, size: 16, color: kPrimary),
+                                  label: Text('Graduar', style: TextStyle(color: kPrimary, fontSize: 12, fontWeight: FontWeight.w700)),
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (_faixasPorModalidade.isEmpty)
+                              _row('Faixa atual', a['faixaAtualNome'])
+                            else
+                              ..._faixasPorModalidade.entries.map((e) => Padding(
+                                padding: const EdgeInsets.only(bottom: 6),
+                                child: Row(
+                                  children: [
+                                    Expanded(child: Text(e.key, style: TextStyle(color: kText2, fontSize: 12))),
+                                    Row(children: [
+                                      Container(
+                                        width: 10, height: 10,
+                                        margin: const EdgeInsets.only(right: 6),
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: _parseCor(e.value['cor']?.toString()),
+                                        ),
+                                      ),
+                                      Text(e.value['nome']?.toString() ?? '-', style: TextStyle(color: kText1, fontSize: 13, fontWeight: FontWeight.w600)),
+                                    ]),
+                                  ],
+                                ),
+                              )),
+                            _row('Nível / XP', a['nivel'] != null ? '${a['nivel']} · ${a['xpTotal'] ?? 0} XP' : null),
+                          ]),
+                          const SizedBox(height: 12),
+                          _buildCard([
+                            _sectionTitle('Plano'),
+                            _row('Plano', a['planoNome']),
+                            _row('Tipo', a['tipoPlano']),
+                            _row('Vencimento', a['diaVencimento'] != null ? 'Dia ${a['diaVencimento']}' : null),
+                          ]),
+                          // Turmas com botão vincular
+                          const SizedBox(height: 12),
+                          _buildCard([
+                            Row(
+                              children: [
+                                Expanded(child: _sectionTitle('Turmas')),
+                                TextButton.icon(
+                                  onPressed: _abrirVincularTurma,
+                                  icon: Icon(Icons.add_circle_outline_rounded, size: 16, color: kPrimary),
+                                  label: Text('Vincular', style: TextStyle(color: kPrimary, fontSize: 12, fontWeight: FontWeight.w700)),
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if ((a['turmas'] as List?)?.isEmpty != false)
+                              Text('Nenhuma turma vinculada.', style: TextStyle(color: kText2, fontSize: 13))
+                            else
+                              ...(a['turmas'] as List).map((t) => Padding(
+                                padding: const EdgeInsets.only(bottom: 4),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.circle, color: kPrimary, size: 6),
+                                    const SizedBox(width: 8),
+                                    Text(t.toString(), style: TextStyle(color: kText1, fontSize: 13)),
+                                  ],
+                                ),
+                              )),
+                          ]),
+                          if (a['contatoEmergenciaNome'] != null) ...[
+                            const SizedBox(height: 12),
+                            _buildCard([
+                              _sectionTitle('Contato de Emergência'),
+                              _row('Nome', a['contatoEmergenciaNome']),
+                              _row('Telefone', a['contatoEmergenciaTelefone']),
+                            ]),
+                          ],
+                          const SizedBox(height: 24),
+                        ],
+                      ),
+                    ),
+    );
+  }
+
+  Widget _buildCard(List<Widget> children) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: kSurface, borderRadius: BorderRadius.circular(14), border: Border.all(color: kBorder)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+      );
+
+  Widget _buildAvatar(String nome) {
+    final initials = nome.trim().split(RegExp(r'\s+')).take(2).map((w) => w.isNotEmpty ? w[0] : '').join().toUpperCase();
+    return Center(
+      child: CircleAvatar(
+        radius: 32,
+        backgroundColor: kPrimary.withOpacity(0.2),
+        child: Text(initials.isEmpty ? '?' : initials, style: TextStyle(color: kPrimary, fontSize: 22, fontWeight: FontWeight.w800)),
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String t) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text(t, style: TextStyle(color: kText2, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+      );
+
+  Widget _row(String label, dynamic value) {
+    if (value == null || value.toString().isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 110, child: Text(label, style: TextStyle(color: kText2, fontSize: 13))),
+          Expanded(child: Text(value.toString(), style: TextStyle(color: kText1, fontSize: 13, fontWeight: FontWeight.w600))),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusBadge(bool ativo) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: ativo ? kSuccess.withOpacity(0.15) : kText2.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(ativo ? 'Ativo' : 'Inativo',
+            style: TextStyle(color: ativo ? kSuccess : kText2, fontSize: 12, fontWeight: FontWeight.w700)),
+      );
+
+  String? _formatDate(dynamic raw) {
+    if (raw == null) return null;
+    try {
+      final dt = DateTime.parse(raw.toString());
+      return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+    } catch (_) {
+      return raw.toString();
+    }
+  }
+}

@@ -17,7 +17,8 @@ public class PresencaDto
 public class RegistrarPresencaRequest
 {
     public Guid AlunoId { get; set; }
-    public Guid HorarioId { get; set; }
+    public Guid? HorarioId { get; set; }
+    public Guid? TurmaId { get; set; }
     public DateOnly? Data { get; set; }
     public string? ObservacoesProfessor { get; set; }
     public int MetodoCheckin { get; set; } = 1;

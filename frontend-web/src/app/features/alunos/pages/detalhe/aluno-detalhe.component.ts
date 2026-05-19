@@ -8,6 +8,7 @@ import { PresencaService } from '../../../../core/services/presenca.service';
 import { RankingService } from '../../../../core/services/ranking.service';
 import { FinanceiroService } from '../../../../core/services/financeiro.service';
 import { GraduacaoService } from '../../../../core/services/graduacao.service';
+import { ToastService } from '../../../../core/services/toast.service';
 import { ModalidadeService, ModalidadeDto } from '../../../../core/services/modalidade.service';
 import { UsuarioService } from '../../../../core/services/usuario.service';
 import { ContratoService } from '../../../../core/services/contrato.service';
@@ -15,7 +16,7 @@ import { ModeloContratoService } from '../../../../core/services/modelo-contrato
 import { AlunoDetalheDto } from '../../../../core/models/aluno.model';
 import { PresencaDto } from '../../../../core/models/presenca.model';
 import { PerfilGamificadoDto } from '../../../../core/models/ranking.model';
-import { PagamentoDto } from '../../../../core/models/financeiro.model';
+import { PagamentoDto, CreatePagamentoRequest } from '../../../../core/models/financeiro.model';
 import { FaixaDto, RegistrarGraduacaoRequest } from '../../../../core/models/graduacao.model';
 import { UsuarioResumoDto } from '../../../../core/models/usuario.model';
 import { ContratoDto, ContratoDetalheDto, ModeloContratoDto } from '../../../../core/models/contrato.model';
@@ -35,6 +36,7 @@ export class AlunoDetalheComponent implements OnInit {
   private readonly rankingService = inject(RankingService);
   private readonly financeiroService = inject(FinanceiroService);
   private readonly graduacaoService = inject(GraduacaoService);
+  private readonly toastService = inject(ToastService);
   private readonly modalidadeService = inject(ModalidadeService);
   private readonly usuarioService = inject(UsuarioService);
   private readonly contratoService = inject(ContratoService);
@@ -85,6 +87,8 @@ export class AlunoDetalheComponent implements OnInit {
   readonly gradProfessorId = signal('');
   readonly gradData = signal(new Date().toISOString().split('T')[0]);
   readonly gradObservacoes = signal('');
+  readonly gradGerarCobranca = signal(false);
+  readonly gradValorCobranca = signal('');
   readonly registrandoGrad = signal(false);
   readonly erroGrad = signal('');
   readonly graduacaoOk = signal(false);
@@ -272,6 +276,8 @@ export class AlunoDetalheComponent implements OnInit {
     this.gradProfessorId.set('');
     this.gradData.set(new Date().toISOString().split('T')[0]);
     this.gradObservacoes.set('');
+    this.gradGerarCobranca.set(false);
+    this.gradValorCobranca.set('');
     this.erroGrad.set('');
     this.graduacaoOk.set(false);
     this.faixasGrad.set([]);
@@ -310,8 +316,27 @@ export class AlunoDetalheComponent implements OnInit {
       next: res => {
         this.registrandoGrad.set(false);
         if (res.sucesso) {
-          this.graduacaoOk.set(true);
-          setTimeout(() => { this.modalGraduacaoAberto.set(false); this.recarregarAluno(); }, 1500);
+          this.modalGraduacaoAberto.set(false);
+          if (this.gradGerarCobranca() && this.gradValorCobranca()) {
+            const valor = parseFloat(this.gradValorCobranca().replace(',', '.'));
+            if (valor > 0) {
+              const faixaNome = this.faixasGrad().find(f => f.id === this.gradFaixaId())?.nome ?? 'Graduação';
+              const hoje = new Date();
+              const dataVencimento = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+              const pag: CreatePagamentoRequest = {
+                alunoId,
+                tipo: 5,
+                status: 2,
+                valor,
+                descricao: `Graduação - ${faixaNome}`,
+                dataVencimento,
+              };
+              this.financeiroService.criar(pag).subscribe();
+            }
+          }
+          this.toastService.success('Graduação registrada com sucesso!');
+          this.recarregarAluno();
+          this.carregarPagamentos(alunoId);
         } else {
           this.erroGrad.set(res.mensagem ?? 'Erro ao registrar.');
         }

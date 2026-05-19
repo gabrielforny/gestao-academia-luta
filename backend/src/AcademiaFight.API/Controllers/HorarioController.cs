@@ -25,9 +25,21 @@ public class HorarioController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetByTurma([FromQuery] Guid turmaId, CancellationToken ct)
+    public async Task<IActionResult> GetByTurma([FromQuery] Guid? turmaId, CancellationToken ct)
     {
-        var resultado = await _horarioService.GetByTurmaAsync(turmaId, ct);
+        var resultado = turmaId.HasValue && turmaId.Value != Guid.Empty
+            ? await _horarioService.GetByTurmaAsync(turmaId.Value, ct)
+            : await _horarioService.GetAllAsync(ct);
+        return Ok(resultado);
+    }
+
+    [HttpGet("meus")]
+    public async Task<IActionResult> GetMeus(CancellationToken ct)
+    {
+        var sub = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
+                  ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(sub, out var professorId)) return Unauthorized();
+        var resultado = await _horarioService.GetByProfessorAsync(professorId, ct);
         return Ok(resultado);
     }
 

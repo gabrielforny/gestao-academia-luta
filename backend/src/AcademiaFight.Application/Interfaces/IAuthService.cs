@@ -12,4 +12,6 @@ public interface IAuthService
     Task<BaseResponse> AlterarSenhaAsync(Guid usuarioId, AlterarSenhaRequest request, CancellationToken ct = default);
     Task<BaseResponse> SolicitarRecuperacaoSenhaAsync(string email, CancellationToken ct = default);
     Task<BaseResponse> RedefinirSenhaAsync(string token, string novaSenha, CancellationToken ct = default);
+    Task<BaseResponse<PrimeiroAcessoResponse>> PrimeiroAcessoAsync(PrimeiroAcessoRequest request, CancellationToken ct = default);
+    Task<BaseResponse<PrimeiroAcessoResponse>> RecuperarAcessoAsync(RecuperarAcessoRequest request, CancellationToken ct = default);
 }

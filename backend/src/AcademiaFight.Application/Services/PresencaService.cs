@@ -28,25 +28,45 @@ public class PresencaService : IPresencaService
         _logger = logger;
     }
 
+    private static readonly DiaSemana[] _diasDow =
+        [DiaSemana.Domingo, DiaSemana.Segunda, DiaSemana.Terca, DiaSemana.Quarta, DiaSemana.Quinta, DiaSemana.Sexta, DiaSemana.Sabado];
+
     public async Task<BaseResponse<PresencaDto>> RegistrarAsync(RegistrarPresencaRequest request, CancellationToken ct = default)
     {
         var data = request.Data ?? DateTimeHelper.Hoje();
 
-        var horario = await _db.Horarios
-            .Include(h => h.Turma)
-            .FirstOrDefaultAsync(h => h.Id == request.HorarioId, ct);
+        Horario? horario = null;
+
+        if (request.HorarioId.HasValue && request.HorarioId.Value != Guid.Empty)
+        {
+            horario = await _db.Horarios.Include(h => h.Turma)
+                .FirstOrDefaultAsync(h => h.Id == request.HorarioId.Value, ct);
+        }
+        else if (request.TurmaId.HasValue && request.TurmaId.Value != Guid.Empty)
+        {
+            var diaHoje = _diasDow[(int)DateTime.Now.DayOfWeek];
+            horario = await _db.Horarios.Include(h => h.Turma)
+                .Where(h => h.TurmaId == request.TurmaId.Value && h.DiaSemana == diaHoje)
+                .FirstOrDefaultAsync(ct)
+                ?? await _db.Horarios.Include(h => h.Turma)
+                    .Where(h => h.TurmaId == request.TurmaId.Value)
+                    .FirstOrDefaultAsync(ct);
+        }
 
         if (horario is null)
             return BaseResponse<PresencaDto>.Falha("Horário não encontrado.");
 
+        var turmaId = horario.TurmaId;
+        var horarioId = horario.Id;
+
         var matriculado = await _db.Matriculas
-            .AnyAsync(m => m.AlunoId == request.AlunoId && m.TurmaId == horario.TurmaId && m.Ativo, ct);
+            .AnyAsync(m => m.AlunoId == request.AlunoId && m.TurmaId == turmaId && m.Ativo, ct);
 
         if (!matriculado)
             return BaseResponse<PresencaDto>.Falha("Aluno não está matriculado nesta turma.");
 
         var jaRegistrado = await _db.Presencas
-            .AnyAsync(p => p.AlunoId == request.AlunoId && p.HorarioId == request.HorarioId && p.Data == data, ct);
+            .AnyAsync(p => p.AlunoId == request.AlunoId && p.HorarioId == horarioId && p.Data == data, ct);
 
         if (jaRegistrado)
             return BaseResponse<PresencaDto>.Falha("Presença já registrada para este aluno nesta aula.");
@@ -54,7 +74,7 @@ public class PresencaService : IPresencaService
         var presenca = new Presenca
         {
             AlunoId = request.AlunoId,
-            HorarioId = request.HorarioId,
+            HorarioId = horarioId,
             Data = data,
             HoraCheckin = DateTimeHelper.HoraAgora(),
             MetodoCheckin = (MetodoCheckin)request.MetodoCheckin,

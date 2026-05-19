@@ -484,9 +484,6 @@
       <h3>Registrar graduação — {{ aluno()?.nome }}</h3>
       <button class="modal-close" (click)="modalGraduacaoAberto.set(false)">✕</button>
     </div>
-    @if (graduacaoOk()) {
-      <div class="alert-success" style="margin:0 0 12px;">✓ Graduação registrada com sucesso!</div>
-    }
     @if (erroGrad()) { <div class="alert-error" style="margin:0 0 12px;">{{ erroGrad() }}</div> }
     <div class="modal-body">
       <div class="form-row">
@@ -524,10 +521,20 @@
         <label class="form-label">Observações</label>
         <textarea class="form-input" rows="2" [ngModel]="gradObservacoes()" (ngModelChange)="gradObservacoes.set($event)" placeholder="Opcional..."></textarea>
       </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--app-bg);border:1px solid var(--app-border);border-radius:8px;">
+        <label style="flex:1;font-size:13px;color:var(--app-text-1);cursor:pointer;margin:0;" [for]="'chk-grad-cobranca'">Gerar cobrança financeira</label>
+        <input type="checkbox" [id]="'chk-grad-cobranca'" [checked]="gradGerarCobranca()" (change)="gradGerarCobranca.set(!gradGerarCobranca())" style="width:16px;height:16px;accent-color:var(--app-primary);cursor:pointer;" />
+      </div>
+      @if (gradGerarCobranca()) {
+        <div class="form-group">
+          <label class="form-label">Valor da cobrança (R$) *</label>
+          <input type="number" class="form-input" min="0" step="0.01" [ngModel]="gradValorCobranca()" (ngModelChange)="gradValorCobranca.set($event)" placeholder="Ex: 150.00" />
+        </div>
+      }
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" (click)="modalGraduacaoAberto.set(false)">Cancelar</button>
-      <button class="btn-primary" (click)="registrarGraduacao()" [disabled]="registrandoGrad() || graduacaoOk()">
+      <button class="btn-primary" (click)="registrarGraduacao()" [disabled]="registrandoGrad()">
         {{ registrandoGrad() ? 'Registrando...' : 'Confirmar graduação' }}
       </button>
     </div>

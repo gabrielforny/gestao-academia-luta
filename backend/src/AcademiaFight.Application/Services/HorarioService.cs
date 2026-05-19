@@ -48,6 +48,35 @@ public class HorarioService : IHorarioService
         return BaseResponse<GradeHorariosDto>.Ok(new GradeHorariosDto { Grade = grade });
     }
 
+    public async Task<BaseResponse<IEnumerable<HorarioDto>>> GetAllAsync(CancellationToken ct = default)
+    {
+        var horarios = await _db.Horarios
+            .Include(h => h.Turma).ThenInclude(t => t.Modalidade)
+            .Include(h => h.Turma).ThenInclude(t => t.Professor)
+            .Include(h => h.Turma).ThenInclude(t => t.Matriculas.Where(m => m.Ativo))
+            .OrderBy(h => h.DiaSemana).ThenBy(h => h.HoraInicio)
+            .ToListAsync(ct);
+        return BaseResponse<IEnumerable<HorarioDto>>.Ok(horarios.Select(MapearDto));
+    }
+
+    public async Task<BaseResponse<IEnumerable<HorarioDto>>> GetByProfessorAsync(Guid professorId, CancellationToken ct = default)
+    {
+        var turmaIds = await _db.Turmas
+            .Where(t => t.ProfessorId == professorId && t.Ativo)
+            .Select(t => t.Id)
+            .ToListAsync(ct);
+
+        var horarios = await _db.Horarios
+            .Include(h => h.Turma).ThenInclude(t => t.Modalidade)
+            .Include(h => h.Turma).ThenInclude(t => t.Professor)
+            .Include(h => h.Turma).ThenInclude(t => t.Matriculas.Where(m => m.Ativo))
+            .Where(h => turmaIds.Contains(h.TurmaId))
+            .OrderBy(h => h.DiaSemana).ThenBy(h => h.HoraInicio)
+            .ToListAsync(ct);
+
+        return BaseResponse<IEnumerable<HorarioDto>>.Ok(horarios.Select(MapearDto));
+    }
+
     public async Task<BaseResponse<IEnumerable<HorarioDto>>> GetByTurmaAsync(Guid turmaId, CancellationToken ct = default)
     {
         var horarios = await _db.Horarios

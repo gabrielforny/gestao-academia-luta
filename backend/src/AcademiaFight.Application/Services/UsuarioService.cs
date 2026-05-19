@@ -59,7 +59,7 @@ public class UsuarioService : IUsuarioService
 
         var graduacoes = await _db.Graduacoes
             .Where(g => ids.Contains(g.AlunoId) && g.Aprovado)
-            .Select(g => new { g.AlunoId, g.DataExame, FaixaNome = g.Faixa.Nome, FaixaCor = g.Faixa.Cor })
+            .Select(g => new { g.AlunoId, FaixaNome = g.Faixa.Nome, FaixaCor = g.Faixa.Cor, FaixaOrdem = g.Faixa.Ordem })
             .ToListAsync(ct);
 
         var pagamentos = await _db.Pagamentos
@@ -73,7 +73,7 @@ public class UsuarioService : IUsuarioService
 
         var faixaDict = graduacoes
             .GroupBy(g => g.AlunoId)
-            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.DataExame).First());
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.FaixaOrdem).First());
 
         var pagamentosDict = pagamentos
             .GroupBy(p => p.AlunoId)
@@ -121,17 +121,37 @@ public class UsuarioService : IUsuarioService
             .Select(m => m.Turma.Nome)
             .ToListAsync(ct);
 
+        var turmasDetalhes = await _db.Matriculas
+            .Where(m => m.AlunoId == id && m.Ativo)
+            .Select(m => new TurmaResumoDto
+            {
+                Nome = m.Turma.Nome,
+                ModalidadeId = m.Turma.ModalidadeId,
+                NomeModalidade = m.Turma.Modalidade.Nome,
+                TotalPresencas = _db.Presencas
+                    .Join(_db.Horarios, p => p.HorarioId, h => h.Id, (p, h) => new { p.AlunoId, h.TurmaId })
+                    .Count(x => x.AlunoId == id && x.TurmaId == m.TurmaId),
+            })
+            .ToListAsync(ct);
+
         var faixa = await _db.Graduacoes
             .Where(g => g.AlunoId == id && g.Aprovado)
-            .OrderByDescending(g => g.DataExame)
+            .OrderByDescending(g => g.Faixa.Ordem)
             .Select(g => new { FaixaNome = g.Faixa.Nome, FaixaCor = g.Faixa.Cor })
             .FirstOrDefaultAsync(ct);
 
+        var statuses = await _db.Pagamentos
+            .Where(p => p.AlunoId == id && p.Status != Domain.Enums.StatusPagamento.Cancelado)
+            .Select(p => p.Status)
+            .ToListAsync(ct);
+
         var dto = MapearAlunoDto(u);
         dto.Turmas = turmas;
+        dto.TurmasDetalhes = turmasDetalhes;
         dto.FaixaAtualNome = faixa?.FaixaNome;
         dto.FaixaAtualCor = faixa?.FaixaCor;
         dto.PlanoNome = u.Plano?.Nome;
+        dto.SituacaoFinanceira = ResolverSituacaoFinanceira(statuses);
         return BaseResponse<AlunoDto>.Ok(dto);
     }
 
@@ -142,7 +162,7 @@ public class UsuarioService : IUsuarioService
             AcademiaId = academiaId,
             Nome = request.Nome,
             Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email,
-            SenhaHash = _hasher.HashPassword(Guid.NewGuid().ToString()),
+            SenhaHash = string.Empty,
             Perfil = PerfilUsuario.Aluno,
             Ativo = true,
             Telefone = request.Telefone,

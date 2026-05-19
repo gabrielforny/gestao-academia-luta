@@ -22,6 +22,7 @@ public class FuncionarioService : IFuncionarioService
     {
         var query = _db.Funcionarios
             .Include(f => f.Usuario)
+            .Where(f => f.Usuario.Ativo)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(nome))

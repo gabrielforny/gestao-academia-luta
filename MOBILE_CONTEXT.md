@@ -99,13 +99,6 @@ GET  /api/cobrancas                 → todas (admin)
 - Se válido: envia código/link → usuário define senha → logado
 - Endpoint a criar: `POST /api/auth/primeiro-acesso`
 
-## Tech stack sugerido para mobile
-- **React Native + Expo** (mais rápido, cross-platform iOS/Android)
-- **TypeScript**
-- **Expo Router** (file-based navigation, similar ao Angular Router)
-- **Axios** ou **fetch** para HTTP (apontando para mesma API .NET)
-- **AsyncStorage** para persistir JWT
-- **React Native Paper** ou **NativeWind** para UI
 
 ## Estrutura de pastas sugerida
 ```

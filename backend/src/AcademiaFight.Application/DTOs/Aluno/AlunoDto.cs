@@ -17,6 +17,7 @@ public class AlunoDto
     public string? FaixaAtualNome { get; set; }
     public string? FaixaAtualCor { get; set; }
     public List<string> Turmas { get; set; } = [];
+    public List<TurmaResumoDto> TurmasDetalhes { get; set; } = [];
     public bool Ativo { get; set; }
     public int XpTotal { get; set; }
     public string Nivel { get; set; } = string.Empty;
@@ -40,6 +41,14 @@ public class CreateAlunoDto
 public class UpdateAlunoDto : CreateAlunoDto
 {
     public bool Ativo { get; set; }
+}
+
+public class TurmaResumoDto
+{
+    public string Nome { get; set; } = string.Empty;
+    public Guid ModalidadeId { get; set; }
+    public string NomeModalidade { get; set; } = string.Empty;
+    public int TotalPresencas { get; set; }
 }
 
 public class AniversarianteDto

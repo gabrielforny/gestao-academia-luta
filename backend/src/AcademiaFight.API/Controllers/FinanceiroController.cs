@@ -45,6 +45,16 @@ public class FinanceiroController : ControllerBase
         return Ok(resultado);
     }
 
+    [HttpGet("minhas")]
+    public async Task<IActionResult> Minhas(CancellationToken ct)
+    {
+        var sub = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
+                  ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(sub, out var alunoId)) return Unauthorized();
+        var resultado = await _financeiroService.ListarPorAlunoAsync(alunoId, ct);
+        return Ok(resultado);
+    }
+
     [HttpPost]
     public async Task<IActionResult> Criar([FromBody] CreatePagamentoDto dto, CancellationToken ct)
     {

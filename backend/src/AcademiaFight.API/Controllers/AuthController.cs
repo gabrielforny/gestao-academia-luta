@@ -75,6 +75,24 @@ public class AuthController : ControllerBase
         return Ok(resultado);
     }
 
+    [HttpPost("primeiro-acesso")]
+    [AllowAnonymous]
+    public async Task<IActionResult> PrimeiroAcesso([FromBody] AcademiaFight.Application.DTOs.Auth.PrimeiroAcessoRequest request, CancellationToken ct)
+    {
+        var resultado = await _authService.PrimeiroAcessoAsync(request, ct);
+        if (!resultado.Sucesso) return BadRequest(resultado);
+        return Ok(resultado);
+    }
+
+    [HttpPost("recuperar-acesso")]
+    [AllowAnonymous]
+    public async Task<IActionResult> RecuperarAcesso([FromBody] AcademiaFight.Application.DTOs.Auth.RecuperarAcessoRequest request, CancellationToken ct)
+    {
+        var resultado = await _authService.RecuperarAcessoAsync(request, ct);
+        if (!resultado.Sucesso) return BadRequest(resultado);
+        return Ok(resultado);
+    }
+
     [HttpPost("forgot-password")]
     [AllowAnonymous]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken ct)

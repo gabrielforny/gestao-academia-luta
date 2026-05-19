@@ -35,9 +35,24 @@ public class AuthService : IAuthService
     {
         try
         {
+            // Aceita EmailOuTelefone (mobile) ou Email (web legado)
+            var identificador = !string.IsNullOrWhiteSpace(request.EmailOuTelefone)
+                ? request.EmailOuTelefone.Trim().ToLower()
+                : request.Email.Trim().ToLower();
+
+            var apenasDigitos = new string(identificador.Where(char.IsDigit).ToArray());
+            string? telefoneFormatado = apenasDigitos.Length switch
+            {
+                11 => $"({apenasDigitos[..2]}) {apenasDigitos[2..7]}-{apenasDigitos[7..]}",
+                10 => $"({apenasDigitos[..2]}) {apenasDigitos[2..6]}-{apenasDigitos[6..]}",
+                _ => null
+            };
+
             var usuario = await _db.Usuarios
                 .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(u => u.Email == request.Email.ToLower() && u.Ativo, ct);
+                .FirstOrDefaultAsync(u => u.Ativo &&
+                    (u.Email != null && u.Email.ToLower() == identificador ||
+                     u.Telefone != null && (u.Telefone == identificador || u.Telefone == telefoneFormatado || u.Telefone == apenasDigitos)), ct);
 
             if (usuario is null || !_passwordHasher.VerificarSenha(request.Senha, usuario.SenhaHash))
                 return BaseResponse<LoginResponse>.Falha("Credenciais inválidas.");
@@ -286,6 +301,91 @@ public class AuthService : IAuthService
         await _emailService.EnviarRecuperacaoSenhaAsync(usuario.Email, usuario.Nome, token, ct);
 
         return BaseResponse.Ok("Se este e-mail estiver cadastrado, você receberá as instruções em breve.");
+    }
+
+    public async Task<BaseResponse<PrimeiroAcessoResponse>> PrimeiroAcessoAsync(PrimeiroAcessoRequest request, CancellationToken ct = default)
+    {
+        var valor = request.EmailOuTelefone.Trim().ToLower();
+
+        // Normaliza: extrai só dígitos para comparar com telefones armazenados com ou sem máscara
+        var apenasDigitos = new string(valor.Where(char.IsDigit).ToArray());
+        string? telefoneFormatado = apenasDigitos.Length switch
+        {
+            11 => $"({apenasDigitos[..2]}) {apenasDigitos[2..7]}-{apenasDigitos[7..]}",
+            10 => $"({apenasDigitos[..2]}) {apenasDigitos[2..6]}-{apenasDigitos[6..]}",
+            _ => null
+        };
+
+        var usuario = await _db.Usuarios
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.Ativo && u.SenhaHash == string.Empty &&
+                (u.Email != null && u.Email.ToLower() == valor ||
+                 u.Telefone != null && (u.Telefone == valor || u.Telefone == telefoneFormatado || u.Telefone == apenasDigitos)), ct);
+
+        // Se não achou usuário sem senha, verifica se existe com senha (já configurou acesso)
+        if (usuario is null)
+        {
+            var jaConfigurado = await _db.Usuarios
+                .IgnoreQueryFilters()
+                .AnyAsync(u => u.Ativo && u.SenhaHash != string.Empty &&
+                    (u.Email != null && u.Email.ToLower() == valor ||
+                     u.Telefone != null && (u.Telefone == valor || u.Telefone == telefoneFormatado || u.Telefone == apenasDigitos)), ct);
+
+            if (jaConfigurado)
+                return BaseResponse<PrimeiroAcessoResponse>.Falha("Você já possui acesso configurado. Use a opção 'Esqueci minha senha' para redefinir.");
+        }
+
+        if (usuario is null)
+            return BaseResponse<PrimeiroAcessoResponse>.Falha("Usuário não encontrado. Verifique o e-mail ou telefone informado.");
+
+        var setupToken = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32))
+            .Replace("+", "-").Replace("/", "_").TrimEnd('=');
+
+        usuario.ResetPasswordToken = setupToken;
+        usuario.ResetPasswordTokenExpiry = DateTime.UtcNow.AddHours(24);
+        await _db.SaveChangesAsync(ct);
+
+        return BaseResponse<PrimeiroAcessoResponse>.Ok(new PrimeiroAcessoResponse(setupToken, usuario.Nome));
+    }
+
+    public async Task<BaseResponse<PrimeiroAcessoResponse>> RecuperarAcessoAsync(RecuperarAcessoRequest request, CancellationToken ct = default)
+    {
+        const string erroDadosIncorretos = "Dados incorretos. Verifique as informações e tente novamente.";
+
+        var valor = request.EmailOuTelefone.Trim().ToLower();
+
+        var apenasDigitos = new string(valor.Where(char.IsDigit).ToArray());
+        string? telefoneFormatado = apenasDigitos.Length switch
+        {
+            11 => $"({apenasDigitos[..2]}) {apenasDigitos[2..7]}-{apenasDigitos[7..]}",
+            10 => $"({apenasDigitos[..2]}) {apenasDigitos[2..6]}-{apenasDigitos[6..]}",
+            _ => null
+        };
+
+        var usuario = await _db.Usuarios
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.Ativo &&
+                (u.Email != null && u.Email.ToLower() == valor ||
+                 u.Telefone != null && (u.Telefone == valor || u.Telefone == telefoneFormatado || u.Telefone == apenasDigitos)), ct);
+
+        // Mensagem genérica para não revelar se o usuário existe (anti-enumeração)
+        if (usuario is null)
+            return BaseResponse<PrimeiroAcessoResponse>.Falha(erroDadosIncorretos);
+
+        if (!usuario.DataNascimento.HasValue)
+            return BaseResponse<PrimeiroAcessoResponse>.Falha("Não foi possível verificar sua identidade. Entre em contato com o administrador.");
+
+        if (usuario.DataNascimento.Value != request.DataNascimento)
+            return BaseResponse<PrimeiroAcessoResponse>.Falha(erroDadosIncorretos);
+
+        var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
+            .Replace("+", "-").Replace("/", "_").TrimEnd('=');
+
+        usuario.ResetPasswordToken = token;
+        usuario.ResetPasswordTokenExpiry = DateTime.UtcNow.AddHours(24);
+        await _db.SaveChangesAsync(ct);
+
+        return BaseResponse<PrimeiroAcessoResponse>.Ok(new PrimeiroAcessoResponse(token, usuario.Nome));
     }
 
     public async Task<BaseResponse> RedefinirSenhaAsync(string token, string novaSenha, CancellationToken ct = default)

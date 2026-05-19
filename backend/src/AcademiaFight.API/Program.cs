@@ -121,11 +121,20 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("PoliticaPadrao", policy =>
     {
-        policy
-            .WithOrigins(origensPermitidas)
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
+        if (builder.Environment.IsDevelopment())
+        {
+            policy.SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        }
+        else
+        {
+            policy.WithOrigins(origensPermitidas)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        }
     });
 });
 
@@ -165,6 +174,8 @@ builder.Services.AddControllers();
 
 var app = builder.Build();
 
+app.UseCors("PoliticaPadrao");
+
 app.UseMiddleware<ExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
@@ -172,8 +183,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Academia Fight API v1"));
 }
-
-app.UseCors("PoliticaPadrao");
 
 app.UseAuthentication();
 app.UseMiddleware<TenantMiddleware>();

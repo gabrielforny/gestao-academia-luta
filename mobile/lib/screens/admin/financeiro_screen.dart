@@ -1,0 +1,336 @@
+import 'package:flutter/material.dart';
+import '../../core/api_client.dart';
+import '../../core/constants.dart';
+
+class AdminFinanceiroScreen extends StatefulWidget {
+  const AdminFinanceiroScreen({super.key});
+
+  @override
+  State<AdminFinanceiroScreen> createState() => _AdminFinanceiroScreenState();
+}
+
+class _AdminFinanceiroScreenState extends State<AdminFinanceiroScreen> {
+  Map<String, dynamic>? _resumo;
+  List<Map<String, dynamic>> _cobrancas = [];
+  bool _loading = true;
+
+  late int _ano;
+  late int _mes;
+
+  static const _meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _ano = now.year;
+    _mes = now.month;
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final results = await Future.wait([
+        dio.get('/api/financeiro/resumo', queryParameters: {'ano': _ano, 'mes': _mes}),
+        dio.get('/api/financeiro', queryParameters: {'pageSize': 50, 'ano': _ano, 'mes': _mes}),
+      ]);
+      final r = results[0].data as Map<String, dynamic>;
+      final c = results[1].data as Map<String, dynamic>;
+      final dados = c['dados'];
+      final list = dados is List ? dados : (dados is Map ? (dados['itens'] as List? ?? []) : []);
+      if (mounted) {
+        setState(() {
+          _resumo = r['dados'] as Map<String, dynamic>?;
+          _cobrancas = list.cast<Map<String, dynamic>>();
+        });
+      }
+    } catch (_) {} finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _navMes(int delta) {
+    setState(() {
+      _mes += delta;
+      if (_mes > 12) { _mes = 1; _ano++; }
+      if (_mes < 1) { _mes = 12; _ano--; }
+    });
+    _load();
+  }
+
+  Color _statusCor(String? s) {
+    if (s == 'Pago') return kSuccess;
+    if (s == 'Pendente') return kWarning;
+    return kDanger;
+  }
+
+  Future<void> _marcarPago(Map<String, dynamic> c) async {
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: kSurface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(width: 36, height: 4, margin: const EdgeInsets.only(bottom: 20, left: 0),
+                decoration: BoxDecoration(color: kBorder, borderRadius: BorderRadius.circular(2))),
+            Text('Marcar como pago', style: TextStyle(color: kText1, fontSize: 17, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            Text('${c['nomeAluno']} · ${c['tipo']}', style: TextStyle(color: kText2, fontSize: 13)),
+            Text('R\$ ${((c['valor'] as num?) ?? 0).toStringAsFixed(2).replaceAll('.', ',')}',
+                style: TextStyle(color: kText1, fontSize: 22, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 24),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: kSuccess,
+                minimumSize: const Size.fromHeight(50),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Confirmar pagamento', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: kText2,
+                side: BorderSide(color: kBorder),
+                minimumSize: const Size.fromHeight(44),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Cancelar'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (ok != true || !mounted) return;
+    try {
+      final now = DateTime.now();
+      final dataStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      await dio.patch('/api/financeiro/${c['id']}', data: {'status': 1, 'dataPagamento': dataStr});
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('${c['nomeAluno']} marcado como pago!'),
+          backgroundColor: kSuccess,
+          behavior: SnackBarBehavior.floating,
+        ));
+        _load();
+      }
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Erro ao atualizar pagamento.'),
+        backgroundColor: kDanger,
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = _resumo;
+    final isAtual = DateTime.now().year == _ano && DateTime.now().month == _mes;
+    return Scaffold(
+      backgroundColor: kBg,
+      body: RefreshIndicator(
+        onRefresh: _load,
+        color: kPrimary,
+        child: SafeArea(
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+                  if (_loading)
+                    const SliverFillRemaining(
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Financeiro', style: TextStyle(color: kText1, fontSize: 22, fontWeight: FontWeight.w800)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: kSurface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: kBorder),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            IconButton(
+                              onPressed: () => _navMes(-1),
+                              icon: Icon(Icons.chevron_left, color: kText1),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                            Column(
+                              children: [
+                                Text(
+                                  '${_meses[_mes - 1]} $_ano',
+                                  style: TextStyle(color: kText1, fontSize: 16, fontWeight: FontWeight.w800),
+                                ),
+                                if (isAtual)
+                                  Text('Mês atual', style: TextStyle(color: kPrimary, fontSize: 11)),
+                              ],
+                            ),
+                            IconButton(
+                              onPressed: isAtual ? null : () => _navMes(1),
+                              icon: Icon(Icons.chevron_right, color: isAtual ? kBorder : kText1),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (r != null)
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                      sliver: SliverGrid.count(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        childAspectRatio: 1.6,
+                        children: [
+                          _met('Recebido', 'R\$ ${((r['totalRecebidoMes'] as num?) ?? 0).toStringAsFixed(0)}', kSuccess),
+                          _met('Pendente', 'R\$ ${((r['totalPendenteMes'] as num?) ?? 0).toStringAsFixed(0)}', kWarning),
+                          _met('Atrasado', 'R\$ ${((r['totalAtrasado'] as num?) ?? 0).toStringAsFixed(0)}', kDanger),
+                          _met('Inadimplentes', '${r['alunosInadimplentes'] ?? 0}', kDanger),
+                        ],
+                      ),
+                    ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+                      child: Text(
+                        _cobrancas.isEmpty ? 'Nenhuma cobrança neste período.' : 'Cobranças · ${_cobrancas.length}',
+                        style: TextStyle(color: kText2, fontSize: 13, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (_, i) {
+                        final c = _cobrancas[i];
+                        final status = c['status'] as String?;
+                        String? dataStr;
+                        if (c['dataVencimento'] != null) {
+                          try {
+                            final dt = DateTime.parse(c['dataVencimento']);
+                            dataStr = '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+                          } catch (_) {}
+                        }
+                        final isPago = status == 'Pago';
+                        return Container(
+                          margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                          decoration: BoxDecoration(
+                            color: kSurface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: !isPago ? _statusCor(status).withOpacity(0.3) : kBorder),
+                          ),
+                          child: Column(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(14),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(c['nomeAluno'] ?? '', style: TextStyle(color: kText1, fontSize: 14, fontWeight: FontWeight.w600)),
+                                          Text(
+                                            [c['tipo'], if (dataStr != null) 'Venc. $dataStr'].join(' · '),
+                                            style: TextStyle(color: kText2, fontSize: 12),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          'R\$ ${((c['valor'] as num?) ?? 0).toStringAsFixed(2).replaceAll('.', ',')}',
+                                          style: TextStyle(color: kText1, fontSize: 14, fontWeight: FontWeight.w700),
+                                        ),
+                                        Text(status ?? '', style: TextStyle(color: _statusCor(status), fontSize: 12, fontWeight: FontWeight.w600)),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (!isPago)
+                                InkWell(
+                                  onTap: () => _marcarPago(c),
+                                  borderRadius: const BorderRadius.only(
+                                    bottomLeft: Radius.circular(12),
+                                    bottomRight: Radius.circular(12),
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: kSuccess.withOpacity(0.08),
+                                      borderRadius: const BorderRadius.only(
+                                        bottomLeft: Radius.circular(12),
+                                        bottomRight: Radius.circular(12),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.check_circle_outline_rounded, color: kSuccess, size: 16),
+                                        const SizedBox(width: 6),
+                                        Text('Marcar como pago', style: TextStyle(color: kSuccess, fontSize: 13, fontWeight: FontWeight.w700)),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                      childCount: _cobrancas.length,
+                    ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                  ], // end else
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _met(String label, String value, Color color) => Container(
+        decoration: BoxDecoration(
+          color: kSurface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: kBorder),
+        ),
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(value, style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 4),
+            Text(label, style: TextStyle(color: kText2, fontSize: 11), textAlign: TextAlign.center),
+          ],
+        ),
+      );
+}

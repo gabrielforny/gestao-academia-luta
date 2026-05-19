@@ -40,7 +40,8 @@ public class TurmaService : ITurmaService
                 ProfessorNome = t.Professor.Nome,
                 Nivel = t.Nivel,
                 CapacidadeMaxima = t.CapacidadeMaxima,
-                Ativo = t.Ativo
+                Ativo = t.Ativo,
+                TotalAlunos = t.Matriculas.Count(m => m.Ativo)
             })
             .ToListAsync(ct);
 

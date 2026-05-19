@@ -66,6 +66,19 @@ public class AlunoController : ControllerBase
         return Ok(resultado);
     }
 
+    [HttpGet("me")]
+    public async Task<IActionResult> Me(CancellationToken ct)
+    {
+        var idStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                    ?? User.FindFirst("sub")?.Value;
+        if (!Guid.TryParse(idStr, out var id))
+            return Unauthorized();
+
+        var resultado = await _usuarioService.ObterAlunoPorIdAsync(id, ct);
+        if (!resultado.Sucesso) return NotFound(resultado);
+        return Ok(resultado);
+    }
+
     [HttpGet("aniversariantes")]
     public async Task<IActionResult> Aniversariantes([FromQuery] int? mes, CancellationToken ct)
     {

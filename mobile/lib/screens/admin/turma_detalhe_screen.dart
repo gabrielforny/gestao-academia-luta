@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../../core/constants.dart';
+import 'turmas_screen.dart' show TurmaFormSheet;
 
 class AdminTurmaDetalheScreen extends StatefulWidget {
   final String turmaId;
@@ -218,6 +219,22 @@ class _AdminTurmaDetalheScreenState extends State<AdminTurmaDetalheScreen> with 
         foregroundColor: kText1,
         elevation: 0,
         title: Text(t?['nome'] ?? 'Turma', style: TextStyle(color: kText1, fontWeight: FontWeight.w700)),
+        actions: [
+          if (t != null)
+            IconButton(
+              icon: Icon(Icons.edit_rounded, color: kText2, size: 20),
+              tooltip: 'Editar turma',
+              onPressed: () async {
+                final editou = await showModalBottomSheet<bool>(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => TurmaFormSheet(turma: t),
+                );
+                if (editou == true) _load();
+              },
+            ),
+        ],
         bottom: TabBar(
           controller: _tabCtrl,
           labelColor: kPrimary,

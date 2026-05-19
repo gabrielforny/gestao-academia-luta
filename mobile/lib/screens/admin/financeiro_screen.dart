@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/api_client.dart';
 import '../../core/constants.dart';
 
@@ -63,6 +64,83 @@ class _AdminFinanceiroScreenState extends State<AdminFinanceiroScreen> {
     if (s == 'Pago') return kSuccess;
     if (s == 'Pendente') return kWarning;
     return kDanger;
+  }
+
+  Future<void> _gerarCobrancas() async {
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: kSurface,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(color: kBorder, borderRadius: BorderRadius.circular(2))),
+            Row(children: [
+              Icon(Icons.receipt_long_rounded, color: kPrimary, size: 22),
+              const SizedBox(width: 10),
+              Text('Gerar Cobranças',
+                  style: TextStyle(color: kText1, fontSize: 17, fontWeight: FontWeight.w800)),
+            ]),
+            const SizedBox(height: 8),
+            Text(
+              'Isso gerará as cobranças mensais para todos os alunos ativos que ainda não possuem cobrança em ${_meses[_mes - 1]}/$_ano.',
+              style: TextStyle(color: kText2, fontSize: 13),
+            ),
+            const SizedBox(height: 24),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: kPrimary,
+                minimumSize: const Size.fromHeight(50),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Gerar cobranças agora',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: kText2,
+                side: BorderSide(color: kBorder),
+                minimumSize: const Size.fromHeight(44),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Cancelar'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (ok != true || !mounted) return;
+    try {
+      await dio.post('/api/financeiro/gerar-cobrancas',
+          data: {'ano': _ano, 'mes': _mes});
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Cobranças geradas com sucesso!'),
+          backgroundColor: kSuccess,
+          behavior: SnackBarBehavior.floating,
+        ));
+        _load();
+      }
+    } catch (e) {
+      String msg = 'Erro ao gerar cobranças.';
+      try { msg = ((e as dynamic).response?.data as Map?)?['mensagem'] ?? msg; } catch (_) {}
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(msg),
+        backgroundColor: kDanger,
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
   }
 
   Future<void> _marcarPago(Map<String, dynamic> c) async {
@@ -155,6 +233,26 @@ class _AdminFinanceiroScreenState extends State<AdminFinanceiroScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text('Financeiro', style: TextStyle(color: kText1, fontSize: 22, fontWeight: FontWeight.w800)),
+                          Row(
+                            children: [
+                              IconButton(
+                                onPressed: () => context.push('/admin/financeiro/relatorio'),
+                                icon: Icon(Icons.bar_chart_rounded, color: kText2, size: 22),
+                                tooltip: 'Relatório Anual',
+                              ),
+                              TextButton.icon(
+                                onPressed: _gerarCobrancas,
+                                icon: Icon(Icons.receipt_long_rounded, size: 16, color: kPrimary),
+                                label: Text('Gerar cobranças',
+                                    style: TextStyle(color: kPrimary, fontSize: 12, fontWeight: FontWeight.w700)),
+                                style: TextButton.styleFrom(
+                                  backgroundColor: kPrimary.withOpacity(0.10),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),

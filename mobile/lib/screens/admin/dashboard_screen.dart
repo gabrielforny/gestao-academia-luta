@@ -113,7 +113,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     Row(
                       children: [
                         const SinoNotificacoes(),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          onPressed: () => context.push('/admin/dashboard/configuracoes'),
+                          icon: Icon(Icons.settings_rounded, color: kText2, size: 22),
+                          tooltip: 'Configurações',
+                        ),
+                        const SizedBox(width: 4),
                         TextButton(
                           onPressed: _sair,
                           style: TextButton.styleFrom(

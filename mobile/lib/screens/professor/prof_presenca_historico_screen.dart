@@ -1,0 +1,257 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import '../../core/api_client.dart';
+import '../../core/constants.dart';
+
+class ProfPresencaHistoricoScreen extends StatefulWidget {
+  const ProfPresencaHistoricoScreen({
+    super.key,
+    required this.horarioId,
+    required this.nomeTurma,
+    required this.horario,
+  });
+
+  final String horarioId;
+  final String nomeTurma;
+  final String horario;
+
+  @override
+  State<ProfPresencaHistoricoScreen> createState() => _ProfPresencaHistoricoScreenState();
+}
+
+class _ProfPresencaHistoricoScreenState extends State<ProfPresencaHistoricoScreen> {
+  DateTime _data = DateTime.now();
+  List<Map<String, dynamic>> _presencas = [];
+  bool _loading = false;
+  bool _erro = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _erro = false; });
+    final fmt = DateFormat('yyyy-MM-dd');
+    try {
+      final res = await dio.get('/api/presencas/aula', queryParameters: {
+        'horarioId': widget.horarioId,
+        'data': fmt.format(_data),
+      });
+      final raw = res.data['dados'];
+      final list = raw is List ? raw : (raw as Map?)?['items'] as List? ?? [];
+      if (mounted) setState(() { _presencas = list.cast<Map<String, dynamic>>(); _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() { _erro = true; _loading = false; });
+    }
+  }
+
+  Future<void> _pickData() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _data,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      locale: const Locale('pt', 'BR'),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: ColorScheme.dark(
+            primary: kPrimary,
+            surface: kSurface,
+            onSurface: kText1,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked == null) return;
+    setState(() { _data = picked; });
+    _load();
+  }
+
+  String _metodo(String? m) {
+    if (m == null) return '';
+    if (m.contains('QR') || m.contains('Qr') || m.contains('qr')) return 'QR Code';
+    if (m.contains('Manual') || m.contains('manual')) return 'Manual';
+    return m;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final fmtExib = DateFormat('dd/MM/yyyy (EEEE)', 'pt_BR');
+
+    return Scaffold(
+      backgroundColor: kBg,
+      appBar: AppBar(
+        backgroundColor: kSurface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: kText1, size: 20),
+          onPressed: () => context.pop(),
+        ),
+        title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(widget.nomeTurma, style: TextStyle(color: kText1, fontSize: 15, fontWeight: FontWeight.w800)),
+          Text(widget.horario, style: TextStyle(color: kText2, fontSize: 11)),
+        ]),
+      ),
+      body: Column(
+        children: [
+          Container(
+            color: kSurface,
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+            child: Row(
+              children: [
+                Icon(Icons.calendar_today_rounded, color: kPrimary, size: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    fmtExib.format(_data),
+                    style: TextStyle(color: kText1, fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _pickData,
+                  icon: const Icon(Icons.edit_calendar_rounded, size: 14),
+                  label: const Text('Alterar'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: kPrimary,
+                    side: BorderSide(color: kPrimary.withOpacity(0.4)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _erro
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.error_outline_rounded, color: kDanger, size: 52),
+                            const SizedBox(height: 14),
+                            Text('Não foi possível carregar', style: TextStyle(color: kText2)),
+                            const SizedBox(height: 18),
+                            OutlinedButton.icon(
+                              onPressed: _load,
+                              icon: const Icon(Icons.refresh_rounded),
+                              label: const Text('Tentar novamente'),
+                              style: OutlinedButton.styleFrom(foregroundColor: kPrimary),
+                            ),
+                          ],
+                        ),
+                      )
+                    : _presencas.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.event_busy_rounded, color: kText2, size: 52),
+                                const SizedBox(height: 14),
+                                Text('Nenhuma presença nesta aula', style: TextStyle(color: kText2)),
+                                const SizedBox(height: 6),
+                                Text('Toque em "Alterar" para mudar a data',
+                                    style: TextStyle(color: kText2.withOpacity(0.6), fontSize: 12)),
+                              ],
+                            ),
+                          )
+                        : Column(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      '${_presencas.length} ${_presencas.length == 1 ? 'presente' : 'presentes'}',
+                                      style: TextStyle(color: kText1, fontWeight: FontWeight.w800, fontSize: 15),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Expanded(
+                                child: ListView.separated(
+                                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+                                  itemCount: _presencas.length,
+                                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                                  itemBuilder: (_, i) {
+                                    final p = _presencas[i];
+                                    final hora = (p['horaCheckin'] as String? ?? '').substring(0, 5);
+                                    final metodo = _metodo(p['metodoCheckin']?.toString());
+                                    final confirmado = p['confirmado'] as bool? ?? false;
+
+                                    return Container(
+                                      padding: const EdgeInsets.all(14),
+                                      decoration: BoxDecoration(
+                                        color: kSurface,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: kBorder),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 40, height: 40,
+                                            decoration: BoxDecoration(
+                                              color: confirmado ? kSuccess.withOpacity(0.12) : kWarning.withOpacity(0.12),
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                            child: Icon(
+                                              confirmado ? Icons.check_circle_rounded : Icons.schedule_rounded,
+                                              color: confirmado ? kSuccess : kWarning,
+                                              size: 22,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  p['nomeAluno']?.toString() ?? '',
+                                                  style: TextStyle(color: kText1, fontWeight: FontWeight.w700),
+                                                ),
+                                                Row(
+                                                  children: [
+                                                    Icon(Icons.access_time_rounded, size: 11, color: kText2),
+                                                    const SizedBox(width: 3),
+                                                    Text(hora, style: TextStyle(color: kText2, fontSize: 11)),
+                                                    if (metodo.isNotEmpty) ...[
+                                                      const SizedBox(width: 8),
+                                                      Icon(Icons.phone_iphone_rounded, size: 11, color: kText2),
+                                                      const SizedBox(width: 3),
+                                                      Text(metodo, style: TextStyle(color: kText2, fontSize: 11)),
+                                                    ],
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          if (!confirmado)
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: kWarning.withOpacity(0.12),
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Text('Pendente', style: TextStyle(color: kWarning, fontSize: 10, fontWeight: FontWeight.w700)),
+                                            ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+          ),
+        ],
+      ),
+    );
+  }
+}

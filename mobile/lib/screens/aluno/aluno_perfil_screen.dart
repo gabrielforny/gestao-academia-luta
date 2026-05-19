@@ -5,6 +5,7 @@ import '../../core/auth_storage.dart';
 import '../../core/constants.dart';
 import '../../core/tab_refresh.dart';
 import '../notificacoes_screen.dart';
+import 'aluno_qrcode_sheet.dart';
 
 class AlunoPerfilScreen extends StatefulWidget {
   const AlunoPerfilScreen({super.key});
@@ -183,6 +184,114 @@ class _AlunoPerfilScreenState extends State<AlunoPerfilScreen> {
     }
   }
 
+  void _mostrarQrCode() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => const AlunoQrCodeSheet(),
+    );
+  }
+
+  void _editarPerfil() {
+    final nomeCtrl = TextEditingController(text: _aluno?['nome'] as String? ?? '');
+    final telCtrl = TextEditingController(text: _aluno?['telefone'] as String? ?? '');
+    bool salvando = false;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) => Container(
+          decoration: BoxDecoration(color: kSurface, borderRadius: const BorderRadius.vertical(top: Radius.circular(24))),
+          padding: EdgeInsets.only(left: 24, right: 24, top: 16, bottom: MediaQuery.of(ctx).viewInsets.bottom + 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(child: Container(width: 36, height: 4, margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(color: kBorder, borderRadius: BorderRadius.circular(2)))),
+              Row(children: [
+                Container(width: 38, height: 38,
+                  decoration: BoxDecoration(color: kPrimary.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
+                  child: Icon(Icons.person_rounded, color: kPrimary, size: 20)),
+                const SizedBox(width: 12),
+                Text('Editar Perfil', style: TextStyle(color: kText1, fontSize: 17, fontWeight: FontWeight.w800)),
+              ]),
+              const SizedBox(height: 20),
+              TextField(
+                controller: nomeCtrl,
+                style: TextStyle(color: kText1),
+                decoration: InputDecoration(
+                  labelText: 'Nome completo',
+                  labelStyle: TextStyle(color: kText2, fontSize: 13),
+                  prefixIcon: Icon(Icons.badge_rounded, color: kText2, size: 18),
+                  filled: true, fillColor: kBg,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kBorder)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kBorder)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kPrimary, width: 1.5)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: telCtrl,
+                style: TextStyle(color: kText1),
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  labelText: 'Telefone',
+                  labelStyle: TextStyle(color: kText2, fontSize: 13),
+                  prefixIcon: Icon(Icons.phone_rounded, color: kText2, size: 18),
+                  filled: true, fillColor: kBg,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kBorder)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kBorder)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kPrimary, width: 1.5)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: salvando ? null : () async {
+                    setModal(() => salvando = true);
+                    try {
+                      await dio.put('/api/usuarios/me', data: {
+                        'nome': nomeCtrl.text.trim(),
+                        'telefone': telCtrl.text.trim().isEmpty ? null : telCtrl.text.trim(),
+                      });
+                      if (!mounted) return;
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: const Text('Perfil atualizado!'), backgroundColor: kSuccess, behavior: SnackBarBehavior.floating),
+                      );
+                      _load();
+                    } catch (_) {
+                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: const Text('Erro ao salvar.'), backgroundColor: kDanger, behavior: SnackBarBehavior.floating),
+                      );
+                    } finally {
+                      setModal(() => salvando = false);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimary, foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: salvando
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('Salvar', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _sair() async {
     await AuthStorage.clear();
     if (mounted) context.go('/login');
@@ -250,6 +359,22 @@ class _AlunoPerfilScreenState extends State<AlunoPerfilScreen> {
                             const SinoNotificacoes(),
                             const SizedBox(width: 8),
                             GestureDetector(
+                              onTap: () => context.push('/alterar-senha'),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.08),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(children: [
+                                  Icon(Icons.lock_reset_rounded, size: 14, color: kText2),
+                                  const SizedBox(width: 4),
+                                  Text('Senha', style: TextStyle(color: kText2, fontSize: 12)),
+                                ]),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            GestureDetector(
                               onTap: _sair,
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -310,6 +435,45 @@ class _AlunoPerfilScreenState extends State<AlunoPerfilScreen> {
                             Text(faixaNome, style: TextStyle(color: accentLight, fontSize: 13, fontWeight: FontWeight.w700)),
                           ],
                         ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          GestureDetector(
+                            onTap: _mostrarQrCode,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.10),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.white.withOpacity(0.18)),
+                              ),
+                              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                Icon(Icons.qr_code_rounded, size: 14, color: Colors.white70),
+                                const SizedBox(width: 6),
+                                Text('QR Presença', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
+                              ]),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          GestureDetector(
+                            onTap: _editarPerfil,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.10),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.white.withOpacity(0.18)),
+                              ),
+                              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                Icon(Icons.edit_rounded, size: 14, color: Colors.white70),
+                                const SizedBox(width: 6),
+                                Text('Editar Perfil', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
+                              ]),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

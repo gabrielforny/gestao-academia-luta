@@ -71,7 +71,17 @@ class _AdminTurmasScreenState extends State<AdminTurmasScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
-              child: Text('Turmas', style: TextStyle(color: kText1, fontSize: 22, fontWeight: FontWeight.w800)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Turmas', style: TextStyle(color: kText1, fontSize: 22, fontWeight: FontWeight.w800)),
+                  IconButton(
+                    onPressed: () => context.push('/admin/turmas/relatorio'),
+                    icon: Icon(Icons.people_alt_rounded, color: kText2, size: 22),
+                    tooltip: 'Relatório de Presenças',
+                  ),
+                ],
+              ),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),

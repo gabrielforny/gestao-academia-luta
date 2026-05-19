@@ -17,6 +17,12 @@ import 'screens/admin/turma_detalhe_screen.dart';
 import 'screens/admin/equipe_screen.dart';
 import 'screens/admin/equipe_criar_screen.dart';
 import 'screens/admin/financeiro_screen.dart';
+import 'screens/admin/configuracoes_screen.dart';
+import 'screens/admin/faixas_screen.dart';
+import 'screens/admin/relatorio_anual_screen.dart';
+import 'screens/admin/relatorio_presencas_screen.dart';
+import 'screens/professor/prof_presenca_historico_screen.dart';
+import 'screens/admin/modelos_contrato_screen.dart';
 import 'screens/professor/professor_shell.dart';
 import 'screens/professor/prof_turmas_screen.dart';
 import 'screens/professor/prof_horarios_screen.dart';
@@ -30,6 +36,7 @@ import 'screens/aluno/aluno_presencas_screen.dart';
 import 'screens/aluno/aluno_financeiro_screen.dart';
 import 'screens/aluno/aluno_ranking_screen.dart';
 import 'screens/aluno/aluno_graduacoes_screen.dart';
+import 'screens/alterar_senha_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +48,7 @@ final _router = GoRouter(
   initialLocation: '/splash',
   routes: [
     GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
+    GoRoute(path: '/alterar-senha', builder: (_, __) => const AlterarSenhaScreen()),
     GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
     GoRoute(path: '/primeiro-acesso', builder: (_, __) => const PrimeiroAcessoScreen()),
     GoRoute(path: '/esqueci-senha', builder: (_, __) => const EsqueciSenhaScreen()),
@@ -50,7 +58,15 @@ final _router = GoRouter(
       builder: (_, __, shell) => AdminShell(shell: shell),
       branches: [
         StatefulShellBranch(routes: [
-          GoRoute(path: '/admin/dashboard', builder: (_, __) => const AdminDashboardScreen()),
+          GoRoute(
+            path: '/admin/dashboard',
+            builder: (_, __) => const AdminDashboardScreen(),
+            routes: [
+              GoRoute(path: 'configuracoes', builder: (_, __) => const AdminConfiguracoesScreen()),
+              GoRoute(path: 'faixas', builder: (_, __) => const AdminFaixasScreen()),
+              GoRoute(path: 'contratos', builder: (_, __) => const AdminModelosContratoScreen()),
+            ],
+          ),
         ]),
         StatefulShellBranch(routes: [
           GoRoute(
@@ -67,6 +83,7 @@ final _router = GoRouter(
             path: '/admin/turmas',
             builder: (_, __) => const AdminTurmasScreen(),
             routes: [
+              GoRoute(path: 'relatorio', builder: (_, __) => const AdminRelatorioPresencasScreen()),
               GoRoute(path: ':id', builder: (_, state) => AdminTurmaDetalheScreen(turmaId: state.pathParameters['id']!)),
             ],
           ),
@@ -81,7 +98,13 @@ final _router = GoRouter(
           ),
         ]),
         StatefulShellBranch(routes: [
-          GoRoute(path: '/admin/financeiro', builder: (_, __) => const AdminFinanceiroScreen()),
+          GoRoute(
+            path: '/admin/financeiro',
+            builder: (_, __) => const AdminFinanceiroScreen(),
+            routes: [
+              GoRoute(path: 'relatorio', builder: (_, __) => const AdminRelatorioAnualScreen()),
+            ],
+          ),
         ]),
       ],
     ),
@@ -94,7 +117,20 @@ final _router = GoRouter(
           GoRoute(path: '/professor/turmas', builder: (_, __) => const ProfTurmasScreen()),
         ]),
         StatefulShellBranch(routes: [
-          GoRoute(path: '/professor/horarios', builder: (_, __) => const ProfHorariosScreen()),
+          GoRoute(
+            path: '/professor/horarios',
+            builder: (_, __) => const ProfHorariosScreen(),
+            routes: [
+              GoRoute(
+                path: ':id/presencas',
+                builder: (_, state) => ProfPresencaHistoricoScreen(
+                  horarioId: state.pathParameters['id']!,
+                  nomeTurma: state.uri.queryParameters['turma'] ?? '',
+                  horario: state.uri.queryParameters['horario'] ?? '',
+                ),
+              ),
+            ],
+          ),
         ]),
         StatefulShellBranch(routes: [
           GoRoute(path: '/professor/presenca', builder: (_, __) => const ProfPresencaScreen()),

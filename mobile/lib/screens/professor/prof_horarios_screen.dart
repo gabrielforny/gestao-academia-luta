@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/api_client.dart';
 import '../../core/constants.dart';
 
@@ -73,7 +74,18 @@ class _ProfHorariosScreenState extends State<ProfHorariosScreen> {
                               padding: const EdgeInsets.only(bottom: 8, top: 4),
                               child: Text(dia, style: TextStyle(color: kPrimary, fontSize: 13, fontWeight: FontWeight.w700)),
                             ),
-                            ...horarios.map((h) => Container(
+                            ...horarios.map((h) {
+                              final horarioStr = '${_fmt(h['horaInicio'])} - ${_fmt(h['horaFim'])}';
+                              final turma = h['nomeTurma'] as String? ?? '';
+                              return GestureDetector(
+                                onTap: () {
+                                  final uri = Uri(
+                                    path: '/professor/horarios/${h['id']}/presencas',
+                                    queryParameters: {'turma': turma, 'horario': horarioStr},
+                                  );
+                                  context.push(uri.toString());
+                                },
+                                child: Container(
                                   margin: const EdgeInsets.only(bottom: 8),
                                   padding: const EdgeInsets.all(14),
                                   decoration: BoxDecoration(
@@ -90,7 +102,7 @@ class _ProfHorariosScreenState extends State<ProfHorariosScreen> {
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                         child: Text(
-                                          '${_fmt(h['horaInicio'])} - ${_fmt(h['horaFim'])}',
+                                          horarioStr,
                                           style: TextStyle(color: kPrimary, fontSize: 13, fontWeight: FontWeight.w700),
                                         ),
                                       ),
@@ -99,15 +111,18 @@ class _ProfHorariosScreenState extends State<ProfHorariosScreen> {
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Text(h['nomeTurma'] ?? '', style: TextStyle(color: kText1, fontSize: 14, fontWeight: FontWeight.w600)),
+                                            Text(turma, style: TextStyle(color: kText1, fontSize: 14, fontWeight: FontWeight.w600)),
                                             if (h['nomeModalidade'] != null)
                                               Text(h['nomeModalidade'], style: TextStyle(color: kText2, fontSize: 12)),
                                           ],
                                         ),
                                       ),
+                                      Icon(Icons.chevron_right_rounded, color: kText2, size: 18),
                                     ],
                                   ),
-                                )),
+                                ),
+                              );
+                            }),
                           ],
                         );
                       },

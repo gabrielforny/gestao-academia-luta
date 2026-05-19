@@ -95,7 +95,19 @@ class _ProfPerfilScreenState extends State<ProfPerfilScreen> {
                         ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
                         : const Text('Salvar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () => context.push('/alterar-senha'),
+                    icon: const Icon(Icons.lock_reset_rounded, size: 18),
+                    label: const Text('Alterar Senha', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: kText1,
+                      side: BorderSide(color: kBorder),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   OutlinedButton(
                     onPressed: _sair,
                     style: OutlinedButton.styleFrom(

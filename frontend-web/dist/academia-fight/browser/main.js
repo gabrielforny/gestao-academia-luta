@@ -1,6 +1,6 @@
 import {
   AuthService
-} from "./chunk-64K7TRDC.js";
+} from "./chunk-UDQ4RXGC.js";
 import {
   environment
 } from "./chunk-RZVP4UO7.js";
@@ -12,7 +12,7 @@ import {
   bootstrapApplication,
   provideRouter,
   withComponentInputBinding
-} from "./chunk-QYA4BMW3.js";
+} from "./chunk-CPMJ3O6H.js";
 import {
   ANIMATION_MODULE_TYPE,
   APP_INITIALIZER,
@@ -42,7 +42,7 @@ import {
   ɵɵdefineNgModule,
   ɵɵelement,
   ɵɵinject
-} from "./chunk-YRJQ7ZE3.js";
+} from "./chunk-7TD4H62Z.js";
 import {
   __objRest,
   __spreadValues
@@ -4622,117 +4622,117 @@ function permissaoGuard(modulo) {
 var routes = [
   {
     path: "",
-    loadComponent: () => import("./chunk-5KV7C4JO.js").then((m) => m.LandingComponent),
+    loadComponent: () => import("./chunk-UGWL5ISE.js").then((m) => m.LandingComponent),
     title: "Academia Fight \u2014 Gest\xE3o inteligente para artes marciais"
   },
   {
     path: "login",
-    loadComponent: () => import("./chunk-XHSVHU54.js").then((m) => m.LoginComponent),
+    loadComponent: () => import("./chunk-RJO4SZ2L.js").then((m) => m.LoginComponent),
     canActivate: [guestGuard],
     title: "Entrar \u2014 Academia Fight"
   },
   {
     path: "cadastro",
-    loadComponent: () => import("./chunk-MFI27R4F.js").then((m) => m.CadastroComponent),
+    loadComponent: () => import("./chunk-2GC3G6UB.js").then((m) => m.CadastroComponent),
     canActivate: [guestGuard],
     title: "Criar conta \u2014 Academia Fight"
   },
   {
     path: "forgot-password",
-    loadComponent: () => import("./chunk-72HF42ZN.js").then((m) => m.ForgotPasswordComponent),
+    loadComponent: () => import("./chunk-4MIVD7B6.js").then((m) => m.ForgotPasswordComponent),
     title: "Recuperar senha \u2014 Academia Fight"
   },
   {
     path: "reset-password",
-    loadComponent: () => import("./chunk-LQLQS2LG.js").then((m) => m.ResetPasswordComponent),
+    loadComponent: () => import("./chunk-IZ7I7YAM.js").then((m) => m.ResetPasswordComponent),
     title: "Nova senha \u2014 Academia Fight"
   },
   {
     path: "app",
-    loadComponent: () => import("./chunk-YPBS2HUX.js").then((m) => m.ShellComponent),
+    loadComponent: () => import("./chunk-TL6NCNIW.js").then((m) => m.ShellComponent),
     canActivate: [authGuard],
     children: [
       { path: "", redirectTo: "dashboard", pathMatch: "full" },
       {
         path: "dashboard",
         title: "Dashboard \u2014 Academia Fight",
-        loadComponent: () => import("./chunk-FYDFYPHF.js").then((m) => m.DashboardComponent)
+        loadComponent: () => import("./chunk-C4VIZBCK.js").then((m) => m.DashboardComponent)
       },
       {
         path: "alunos",
         canActivate: [permissaoGuard("Alunos")],
-        loadChildren: () => import("./chunk-4PCL5TJ4.js").then((m) => m.alunosRoutes)
+        loadChildren: () => import("./chunk-3UK2UGS5.js").then((m) => m.alunosRoutes)
       },
       {
         path: "turmas",
         canActivate: [permissaoGuard("Turmas")],
-        loadChildren: () => import("./chunk-75HPLV7Z.js").then((m) => m.turmasRoutes)
+        loadChildren: () => import("./chunk-4B2DALCP.js").then((m) => m.turmasRoutes)
       },
       {
         path: "horarios",
         canActivate: [permissaoGuard("Hor\xE1rios")],
-        loadChildren: () => import("./chunk-PQCMUYDW.js").then((m) => m.horariosRoutes)
+        loadChildren: () => import("./chunk-5G32RCE7.js").then((m) => m.horariosRoutes)
       },
       {
         path: "presencas",
         canActivate: [permissaoGuard("Presen\xE7as")],
-        loadChildren: () => import("./chunk-YYAHPWEO.js").then((m) => m.presencasRoutes)
+        loadChildren: () => import("./chunk-GEMKRAQN.js").then((m) => m.presencasRoutes)
       },
       {
         path: "graduacao",
         canActivate: [permissaoGuard("Gradua\xE7\xE3o")],
-        loadChildren: () => import("./chunk-XPCEWU7A.js").then((m) => m.graduacaoRoutes)
+        loadChildren: () => import("./chunk-OK4VC7RE.js").then((m) => m.graduacaoRoutes)
       },
       {
         path: "ranking",
         canActivate: [permissaoGuard("Ranking")],
-        loadChildren: () => import("./chunk-GYFGURQV.js").then((m) => m.RANKING_ROUTES)
+        loadChildren: () => import("./chunk-GH3B4CAD.js").then((m) => m.RANKING_ROUTES)
       },
       {
         path: "modalidades",
         canActivate: [permissaoGuard("Admin")],
-        loadChildren: () => import("./chunk-K3EFIATV.js").then((m) => m.modalidadesRoutes)
+        loadChildren: () => import("./chunk-A7YO7EZG.js").then((m) => m.modalidadesRoutes)
       },
       {
         path: "funcionarios",
         canActivate: [permissaoGuard("Admin")],
-        loadChildren: () => import("./chunk-3XP4OIOI.js").then((m) => m.funcionariosRoutes)
+        loadChildren: () => import("./chunk-Y3JWNNW6.js").then((m) => m.funcionariosRoutes)
       },
       {
         path: "configuracoes",
         canActivate: [permissaoGuard("Configura\xE7\xF5es")],
-        loadChildren: () => import("./chunk-GRZVNJLZ.js").then((m) => m.configuracoesRoutes)
+        loadChildren: () => import("./chunk-QOFESOZ4.js").then((m) => m.configuracoesRoutes)
       },
       {
         path: "catraca",
         canActivate: [permissaoGuard("Catraca")],
-        loadChildren: () => import("./chunk-EFLA5N2W.js").then((m) => m.catracaRoutes)
+        loadChildren: () => import("./chunk-OWUUBFD7.js").then((m) => m.catracaRoutes)
       },
       {
         path: "planos",
         canActivate: [permissaoGuard("Planos")],
-        loadChildren: () => import("./chunk-BNYO6Y7U.js").then((m) => m.planosRoutes)
+        loadChildren: () => import("./chunk-PCYPP5LM.js").then((m) => m.planosRoutes)
       },
       {
         path: "financeiro",
         canActivate: [permissaoGuard("Financeiro")],
-        loadChildren: () => import("./chunk-FVQE6LIR.js").then((m) => m.financeiroRoutes)
+        loadChildren: () => import("./chunk-I3Y7MU4K.js").then((m) => m.financeiroRoutes)
       },
       {
         path: "relatorios",
         canActivate: [permissaoGuard("Relat\xF3rios")],
-        loadChildren: () => import("./chunk-KIMA6G4Z.js").then((m) => m.relatoriosRoutes)
+        loadChildren: () => import("./chunk-KRWZ4G7W.js").then((m) => m.relatoriosRoutes)
       },
       {
         path: "contratos",
         canActivate: [permissaoGuard("Contratos")],
-        loadChildren: () => import("./chunk-SRYQFNRL.js").then((m) => m.contratosRoutes)
+        loadChildren: () => import("./chunk-QW27LLNP.js").then((m) => m.contratosRoutes)
       }
     ]
   },
   {
     path: "assinar/:token",
-    loadComponent: () => import("./chunk-EMWTU7VW.js").then((m) => m.AssinarContratoComponent),
+    loadComponent: () => import("./chunk-LUA67ESG.js").then((m) => m.AssinarContratoComponent),
     title: "Assinar Contrato"
   },
   {

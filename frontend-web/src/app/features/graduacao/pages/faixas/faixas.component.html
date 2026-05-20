@@ -1,21 +1,21 @@
 <div class="page-container">
   <div class="page-header">
-    <h1 class="page-title">Faixas</h1>
+    <h1 class="page-title">Faixas & Graduações</h1>
     <div class="header-actions">
       <a routerLink="registrar" class="btn-secondary">Registrar Graduação</a>
-      <button class="btn-primary" (click)="abrirModal()" [disabled]="!modalidadeId()">+ Criar nova graduação</button>
+      <button class="btn-primary" (click)="abrirModalCriar()">+ Nova faixa</button>
     </div>
   </div>
 
+  <!-- Filtro por modalidade -->
   <div class="filters-row">
-    <div class="form-group">
-      <label class="form-label">Modalidade</label>
+    <div class="form-group" style="margin:0;">
       <select
         [ngModel]="modalidadeId()"
         (ngModelChange)="modalidadeId.set($event); onModalidadeChange()"
         class="form-input"
-        style="max-width:300px">
-        <option value="">Selecione uma modalidade...</option>
+        style="max-width:260px">
+        <option value="">Todas as modalidades</option>
         @for (m of modalidades(); track m.id) {
           <option [value]="m.id">{{ m.nome }}</option>
         }
@@ -25,15 +25,20 @@
 
   @if (carregando()) {
     <div class="skeleton-list">@for (i of [1,2,3]; track i) { <div class="skeleton-row"></div> }</div>
-  } @else if (faixas().length > 0) {
+  } @else if (faixas().length === 0) {
+    <div class="empty-state">
+      <p>Nenhuma faixa cadastrada{{ modalidadeId() ? ' para esta modalidade' : '' }}.</p>
+      <button class="btn-primary" (click)="abrirModalCriar()">+ Nova faixa</button>
+    </div>
+  } @else if (modalidadeId()) {
+    <!-- Vista filtrada: tabela plana -->
     <div class="table-wrapper">
-      <table class="data-table" cdkDropList (cdkDropListDropped)="drop($event)">
+      <table class="data-table" cdkDropList (cdkDropListDropped)="drop($event, faixasAgrupadas()[0])">
         <thead>
           <tr>
             <th style="width:40px;"></th>
             <th style="width:44px;">Cor</th>
             <th>Nome</th>
-            @if (!modalidadeId()) { <th>Modalidade</th> }
             <th>Meses mín.</th>
             <th>Presenças mín.</th>
             <th>Ordem</th>
@@ -43,20 +48,15 @@
         <tbody>
           @for (faixa of faixas(); track faixa.id) {
             <tr cdkDrag>
-              <td class="drag-cell" cdkDragHandle [title]="modalidadeId() ? 'Arrastar para reordenar' : 'Selecione uma modalidade para reordenar'">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" [style.opacity]="modalidadeId() ? 1 : 0.3" style="color:var(--app-text-3);cursor:grab;">
+              <td class="drag-cell" cdkDragHandle title="Arrastar para reordenar">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" style="color:var(--app-text-3);cursor:grab;">
                   <circle cx="4" cy="3" r="1.2"/><circle cx="10" cy="3" r="1.2"/>
                   <circle cx="4" cy="7" r="1.2"/><circle cx="10" cy="7" r="1.2"/>
                   <circle cx="4" cy="11" r="1.2"/><circle cx="10" cy="11" r="1.2"/>
                 </svg>
               </td>
-              <td>
-                <div class="faixa-bolinha" [style.background]="faixa.cor" [title]="faixa.cor"></div>
-              </td>
+              <td><div class="faixa-bolinha" [style.background]="faixa.cor" [title]="faixa.cor"></div></td>
               <td class="font-medium">{{ faixa.nome }}</td>
-              @if (!modalidadeId()) {
-                <td style="font-size:12px;color:var(--app-text-2)">{{ faixa.nomeModalidade }}</td>
-              }
               <td>{{ faixa.requisitosMesesMinimos }}m</td>
               <td>{{ faixa.requisitosPresencasMinimas }}</td>
               <td>{{ faixa.ordem }}º</td>
@@ -76,21 +76,115 @@
       </table>
     </div>
   } @else {
-    <div class="empty-state">
-      @if (modalidadeId()) {
-        <p>Nenhuma graduação cadastrada para esta modalidade.</p>
-        <button class="btn-primary" (click)="abrirModal()">+ Criar nova graduação</button>
-      } @else {
-        <p>Nenhuma graduação cadastrada. Selecione uma modalidade para criar a primeira.</p>
+    <!-- Vista agrupada por modalidade -->
+    <div class="grupos-lista">
+      @for (grupo of faixasAgrupadas(); track grupo.modalidadeId) {
+        <div class="grupo-card">
+          <button class="grupo-header" (click)="toggleExpandido(grupo.modalidadeId)">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <svg class="grupo-chevron" [class.expandido]="expandidos().has(grupo.modalidadeId)"
+                width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+              <span class="grupo-nome">{{ grupo.nomeModalidade }}</span>
+              <span class="grupo-badge">{{ grupo.faixas.length }} faixa{{ grupo.faixas.length !== 1 ? 's' : '' }}</span>
+            </div>
+            <div style="display:flex;gap:6px;">
+              @for (f of grupo.faixas.slice(0, 8); track f.id) {
+                <div class="faixa-dot" [style.background]="f.cor" [title]="f.nome"></div>
+              }
+            </div>
+          </button>
+
+          @if (expandidos().has(grupo.modalidadeId)) {
+            <div class="grupo-body">
+              <table class="data-table" style="margin:0;"
+                cdkDropList (cdkDropListDropped)="drop($event, grupo)">
+                <thead>
+                  <tr>
+                    <th style="width:36px;"></th>
+                    <th style="width:40px;">Cor</th>
+                    <th>Nome</th>
+                    <th>Meses mín.</th>
+                    <th>Presenças mín.</th>
+                    <th>Ordem</th>
+                    <th style="width:80px;">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (faixa of grupo.faixas; track faixa.id) {
+                    <tr cdkDrag>
+                      <td class="drag-cell" cdkDragHandle title="Arrastar para reordenar">
+                        <svg width="13" height="13" viewBox="0 0 14 14" fill="currentColor" style="color:var(--app-text-3);cursor:grab;">
+                          <circle cx="4" cy="3" r="1.2"/><circle cx="10" cy="3" r="1.2"/>
+                          <circle cx="4" cy="7" r="1.2"/><circle cx="10" cy="7" r="1.2"/>
+                          <circle cx="4" cy="11" r="1.2"/><circle cx="10" cy="11" r="1.2"/>
+                        </svg>
+                      </td>
+                      <td><div class="faixa-bolinha" [style.background]="faixa.cor" [title]="faixa.cor"></div></td>
+                      <td class="font-medium">{{ faixa.nome }}</td>
+                      <td>{{ faixa.requisitosMesesMinimos }}m</td>
+                      <td>{{ faixa.requisitosPresencasMinimas }}</td>
+                      <td>{{ faixa.ordem }}º</td>
+                      <td>
+                        <div style="display:flex;gap:4px;align-items:center;">
+                          <button class="icon-btn" (click)="abrirModal(faixa)" title="Editar">
+                            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          </button>
+                          <button class="icon-btn icon-btn-danger" (click)="remover(faixa.id)" title="Excluir">
+                            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+              <div class="grupo-footer">
+                <button class="btn-ghost-sm" (click)="modalidadeId.set(grupo.modalidadeId); onModalidadeChange(); abrirModal()">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Adicionar faixa em {{ grupo.nomeModalidade }}
+                </button>
+              </div>
+            </div>
+          }
+        </div>
       }
     </div>
   }
 
+  <!-- Modal: escolher modalidade para nova faixa -->
+  @if (modalEscolherModalidade()) {
+    <div class="modal-backdrop" (click)="modalEscolherModalidade.set(false)"></div>
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Para qual modalidade?</h3>
+        <button class="modal-close" (click)="modalEscolherModalidade.set(false)">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Modalidade *</label>
+          <select class="form-input" [ngModel]="novaFaixaModalidadeId()" (ngModelChange)="novaFaixaModalidadeId.set($event)">
+            <option value="">Selecione...</option>
+            @for (m of modalidades(); track m.id) {
+              <option [value]="m.id">{{ m.nome }}</option>
+            }
+          </select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" (click)="modalEscolherModalidade.set(false)">Cancelar</button>
+        <button class="btn-primary" [disabled]="!novaFaixaModalidadeId()" (click)="confirmarModalidadeParaCriar()">Continuar</button>
+      </div>
+    </div>
+  }
+
+  <!-- Modal: criar/editar faixa -->
   @if (modalAberto()) {
     <div class="modal-backdrop" (click)="fecharModal()"></div>
     <div class="modal">
       <div class="modal-header">
-        <h3>{{ editandoId() ? 'Editar Graduação' : 'Nova Graduação' }}</h3>
+        <h3>{{ editandoId() ? 'Editar Faixa' : 'Nova Faixa' }}</h3>
         <button class="modal-close" (click)="fecharModal()">✕</button>
       </div>
       @if (erro()) { <div class="alert-error">{{ erro() }}</div> }
@@ -138,4 +232,20 @@
   .icon-btn { background: none; border: 1px solid transparent; border-radius: 6px; cursor: pointer; padding: 5px 6px; color: var(--app-text-3); display: inline-flex; align-items: center; transition: all 0.15s; }
   .icon-btn:hover { background: var(--app-border-light); border-color: var(--app-border); color: var(--app-text-1); }
   .icon-btn-danger:hover { color: #dc2626; background: rgba(220,38,38,0.08); border-color: rgba(220,38,38,0.2); }
+
+  /* Grupos */
+  .grupos-lista { display: flex; flex-direction: column; gap: 12px; }
+  .grupo-card { background: var(--app-surface); border: 1px solid var(--app-border); border-radius: 12px; overflow: hidden; }
+  .grupo-header { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: none; border: none; cursor: pointer; text-align: left; transition: background 0.15s; gap: 12px; }
+  .grupo-header:hover { background: var(--app-border-light); }
+  .grupo-nome { font-size: 14px; font-weight: 600; color: var(--app-text-1); }
+  .grupo-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: rgba(99,102,241,0.1); color: #6366f1; }
+  .grupo-chevron { transition: transform 0.2s; flex-shrink: 0; color: var(--app-text-3); }
+  .grupo-chevron.expandido { transform: rotate(90deg); }
+  .faixa-dot { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid rgba(0,0,0,0.1); flex-shrink: 0; }
+  .grupo-body { border-top: 1px solid var(--app-border); }
+  .grupo-body .data-table { border-radius: 0; border: none; }
+  .grupo-footer { padding: 10px 16px; border-top: 1px solid var(--app-border); background: var(--app-bg); }
+  .btn-ghost-sm { display: inline-flex; align-items: center; gap: 6px; background: none; border: 1px dashed var(--app-border); border-radius: 6px; cursor: pointer; padding: 5px 12px; font-size: 12px; color: var(--app-text-2); transition: all 0.15s; }
+  .btn-ghost-sm:hover { border-color: #6366f1; color: #6366f1; background: rgba(99,102,241,0.06); }
 </style>

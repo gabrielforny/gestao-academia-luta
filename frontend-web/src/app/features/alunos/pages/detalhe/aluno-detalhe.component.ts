@@ -17,7 +17,7 @@ import { AlunoDetalheDto } from '../../../../core/models/aluno.model';
 import { PresencaDto } from '../../../../core/models/presenca.model';
 import { PerfilGamificadoDto } from '../../../../core/models/ranking.model';
 import { PagamentoDto, CreatePagamentoRequest } from '../../../../core/models/financeiro.model';
-import { FaixaDto, RegistrarGraduacaoRequest } from '../../../../core/models/graduacao.model';
+import { FaixaDto, GraduacaoDto, RegistrarGraduacaoRequest } from '../../../../core/models/graduacao.model';
 import { UsuarioResumoDto } from '../../../../core/models/usuario.model';
 import { ContratoDto, ContratoDetalheDto, ModeloContratoDto } from '../../../../core/models/contrato.model';
 import { NivelBadgeComponent } from '../../../../shared/components/nivel-badge/nivel-badge.component';
@@ -77,6 +77,22 @@ export class AlunoDetalheComponent implements OnInit {
   readonly modelos = signal<ModeloContratoDto[]>([]);
   readonly contratoModeloId = signal('');
 
+  // Graduation history
+  readonly graduacoes = signal<GraduacaoDto[]>([]);
+  readonly carregandoGraduacoes = signal(false);
+
+  readonly graduacoesPorModalidade = computed(() => {
+    const map = new Map<string, GraduacaoDto>();
+    for (const g of this.graduacoes()) {
+      if (!g.aprovado) continue;
+      const existing = map.get(g.modalidadeId);
+      if (!existing || g.dataExame > existing.dataExame) {
+        map.set(g.modalidadeId, g);
+      }
+    }
+    return Array.from(map.values());
+  });
+
   // Graduation modal (#7)
   readonly modalidades = signal<ModalidadeDto[]>([]);
   readonly professores = signal<UsuarioResumoDto[]>([]);
@@ -103,6 +119,7 @@ export class AlunoDetalheComponent implements OnInit {
           this.carregarPerfil(id);
           this.carregarPresencas(id);
           this.carregarPagamentos(id);
+          this.carregarGraduacoes(id);
         }
       },
       error: () => { this.erro.set('Aluno não encontrado.'); this.carregando.set(false); },
@@ -268,10 +285,18 @@ export class AlunoDetalheComponent implements OnInit {
     return 'badge-ct-pendente';
   }
 
+  carregarGraduacoes(id: string): void {
+    this.carregandoGraduacoes.set(true);
+    this.graduacaoService.getHistoricoAluno(id).subscribe({
+      next: r => { this.graduacoes.set(r.dados ?? []); this.carregandoGraduacoes.set(false); },
+      error: () => this.carregandoGraduacoes.set(false),
+    });
+  }
+
   // ─── Graduation ──────────────────────────────────────────────
 
-  abrirModalGraduacao(): void {
-    this.gradModalidadeId.set('');
+  abrirModalGraduacao(modalidadePreSelecionada?: string): void {
+    this.gradModalidadeId.set(modalidadePreSelecionada ?? '');
     this.gradFaixaId.set('');
     this.gradProfessorId.set('');
     this.gradData.set(new Date().toISOString().split('T')[0]);
@@ -282,6 +307,7 @@ export class AlunoDetalheComponent implements OnInit {
     this.graduacaoOk.set(false);
     this.faixasGrad.set([]);
     this.modalGraduacaoAberto.set(true);
+    if (modalidadePreSelecionada) this.onGradModalidadeChange();
   }
 
   onGradModalidadeChange(): void {
@@ -337,6 +363,7 @@ export class AlunoDetalheComponent implements OnInit {
           this.toastService.success('Graduação registrada com sucesso!');
           this.recarregarAluno();
           this.carregarPagamentos(alunoId);
+          this.carregarGraduacoes(alunoId);
         } else {
           this.erroGrad.set(res.mensagem ?? 'Erro ao registrar.');
         }

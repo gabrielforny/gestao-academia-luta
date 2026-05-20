@@ -12,6 +12,9 @@ const MODULOS = [
 
 type Modulo = typeof MODULOS[number];
 
+const PERMS_PROFESSOR: Modulo[] = ['Alunos', 'Turmas', 'Horários', 'Presenças', 'Graduação'];
+const PERMS_RECEPCIONISTA: Modulo[] = ['Alunos', 'Turmas', 'Horários', 'Presenças', 'Graduação', 'Ranking', 'Planos', 'Financeiro', 'Contratos', 'Catraca'];
+
 @Component({
   selector: 'app-funcionario-form',
   standalone: true,
@@ -68,7 +71,23 @@ export class FuncionarioFormComponent implements OnInit {
         },
         error: () => { this.erro.set('Erro ao carregar dados.'); this.carregando.set(false); },
       });
+    } else {
+      this.onPerfilChange(this.form.get('perfil')!.value!);
     }
+  }
+
+  onPerfilChange(perfil: string): void {
+    if (this.editandoId()) return;
+    let perms: Modulo[];
+    if (perfil === 'Admin') {
+      perms = [...MODULOS];
+    } else if (perfil === 'Professor') {
+      perms = PERMS_PROFESSOR;
+    } else {
+      perms = PERMS_RECEPCIONISTA;
+    }
+    const patch = Object.fromEntries(MODULOS.map(m => [m, perms.includes(m)])) as Record<Modulo, boolean>;
+    this.form.get('permissoes')?.patchValue(patch);
   }
 
   mascaraTelefone(event: Event): void {

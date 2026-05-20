@@ -7,6 +7,10 @@ import { AlunoService } from '../../core/services/aluno.service';
 import { AniversarianteDto } from '../../core/models/aluno.model';
 import { ModalidadeService } from '../../core/services/modalidade.service';
 import { PlanoService } from '../../core/services/plano.service';
+import { FinanceiroService } from '../../core/services/financeiro.service';
+import { ResumoFinanceiroDto, PagamentoDto } from '../../core/models/financeiro.model';
+
+type FiltroPag = 'hoje' | 'semana' | 'mes';
 
 @Component({
   selector: 'app-dashboard',
@@ -21,14 +25,46 @@ export class DashboardComponent implements OnInit {
   private readonly alunoService = inject(AlunoService);
   private readonly modalidadeService = inject(ModalidadeService);
   private readonly planoService = inject(PlanoService);
+  private readonly financeiroService = inject(FinanceiroService);
 
   readonly resumo = signal<DashboardResumoDto | null>(null);
+  readonly resumoFin = signal<ResumoFinanceiroDto | null>(null);
+  readonly pagamentosMes = signal<PagamentoDto[]>([]);
   readonly aniversariantes = signal<AniversarianteDto[]>([]);
   readonly carregando = signal(true);
   readonly erro = signal('');
+  readonly filtroPag = signal<FiltroPag>('hoje');
 
   readonly temModalidades = signal(false);
   readonly temPlanos = signal(false);
+
+  readonly hoje = new Date();
+
+  get primeiroNome(): string {
+    return this.authService.currentUser()?.nome?.split(' ')[0] ?? 'usuário';
+  }
+  private readonly anoAtual = this.hoje.getFullYear();
+  private readonly mesAtualNum = this.hoje.getMonth() + 1;
+
+  readonly pagamentosFiltrados = computed(() => {
+    const pags = this.pagamentosMes().filter(p => p.status === 'Pendente' || p.status === 'Atrasado');
+    const filtro = this.filtroPag();
+    const hojeStr = this.hoje.toISOString().split('T')[0];
+    if (filtro === 'hoje') {
+      return pags.filter(p => p.dataVencimento === hojeStr);
+    }
+    if (filtro === 'semana') {
+      const fim = new Date(this.hoje);
+      fim.setDate(fim.getDate() + 7);
+      const fimStr = fim.toISOString().split('T')[0];
+      return pags.filter(p => p.dataVencimento && p.dataVencimento <= fimStr && p.dataVencimento >= hojeStr);
+    }
+    return pags;
+  });
+
+  readonly totalFiltrado = computed(() =>
+    this.pagamentosFiltrados().reduce((s, p) => s + p.valor, 0)
+  );
 
   readonly passos = computed(() => [
     {
@@ -82,6 +118,12 @@ export class DashboardComponent implements OnInit {
     this.planoService.listar().subscribe({
       next: (res) => this.temPlanos.set((res.dados?.length ?? 0) > 0),
     });
+    this.financeiroService.getResumo(this.anoAtual, this.mesAtualNum).subscribe({
+      next: (res) => this.resumoFin.set(res.dados ?? null),
+    });
+    this.financeiroService.listar({ ano: this.anoAtual, mes: this.mesAtualNum, pageSize: 200 }).subscribe({
+      next: (res) => this.pagamentosMes.set(res.dados ?? []),
+    });
   }
 
   carregar(): void {
@@ -91,5 +133,15 @@ export class DashboardComponent implements OnInit {
       next: (res) => { this.resumo.set(res.dados ?? null); this.carregando.set(false); },
       error: () => { this.erro.set('Erro ao carregar dados.'); this.carregando.set(false); },
     });
+  }
+
+  formatarMoeda(v: number): string {
+    return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  formatarData(d?: string): string {
+    if (!d) return '—';
+    const [y, m, day] = d.split('-');
+    return `${day}/${m}/${y}`;
   }
 }

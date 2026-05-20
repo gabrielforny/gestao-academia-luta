@@ -47,11 +47,17 @@
         </div>
         <div class="form-group">
           <label class="form-label">Perfil *</label>
-          <select formControlName="perfil" class="form-input">
+          <select formControlName="perfil" class="form-input"
+            (change)="onPerfilChange($any($event.target).value)">
             <option value="Admin">Admin</option>
             <option value="Professor">Professor</option>
             <option value="Recepcionista">Recepcionista</option>
           </select>
+          @if (!editandoId()) {
+            <span style="font-size:11px;color:var(--color-text-secondary);margin-top:4px;display:block;">
+              Permissões serão preenchidas automaticamente ao selecionar o perfil.
+            </span>
+          }
         </div>
       </div>
 

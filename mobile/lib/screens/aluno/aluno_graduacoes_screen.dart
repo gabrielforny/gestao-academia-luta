@@ -81,15 +81,16 @@ class _AlunoGraduacoesScreenState extends State<AlunoGraduacoesScreen> {
 
               return Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                child: IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SizedBox(
-                        width: 40,
-                        child: Column(children: [
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 40,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
                           if (!isFirst)
-                            Expanded(flex: 1, child: Center(child: Container(width: 2, color: kBorder))),
+                            Center(child: Container(width: 2, height: 10, color: kBorder)),
                           Container(
                             width: 14, height: 14,
                             margin: const EdgeInsets.symmetric(vertical: 4),
@@ -100,43 +101,43 @@ class _AlunoGraduacoesScreenState extends State<AlunoGraduacoesScreen> {
                             ),
                           ),
                           if (!isLast)
-                            Expanded(flex: 3, child: Center(child: Container(width: 2, color: kBorder))),
-                        ]),
+                            Center(child: Container(width: 2, height: 24, color: kBorder)),
+                        ],
                       ),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: kSurface,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: aprovado && isFirst ? cor.withOpacity(0.4) : kBorder),
-                            ),
-                            child: Row(children: [
-                              Container(width: 10, height: 10, margin: const EdgeInsets.only(right: 12), decoration: BoxDecoration(shape: BoxShape.circle, color: cor)),
-                              Expanded(
-                                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                  Text(g['nomeFaixa'] ?? '', style: TextStyle(color: kText1, fontSize: 14, fontWeight: FontWeight.w700)),
-                                  if (g['nomeProfessor'] != null)
-                                    Text('Prof. ${g['nomeProfessor']}', style: TextStyle(color: kText2, fontSize: 11)),
-                                ]),
-                              ),
-                              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                                Text(_fmtData(g['dataExame']?.toString()), style: TextStyle(color: kText2, fontSize: 12)),
-                                const SizedBox(height: 4),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(color: (aprovado ? kSuccess : kDanger).withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
-                                  child: Text(aprovado ? 'Aprovado' : 'Reprovado', style: TextStyle(color: aprovado ? kSuccess : kDanger, fontSize: 11, fontWeight: FontWeight.w700)),
-                                ),
-                              ]),
-                            ]),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: kSurface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: aprovado && isFirst ? cor.withOpacity(0.4) : kBorder),
                           ),
+                          child: Row(children: [
+                            Container(width: 10, height: 10, margin: const EdgeInsets.only(right: 12), decoration: BoxDecoration(shape: BoxShape.circle, color: cor)),
+                            Expanded(
+                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Text(g['nomeFaixa'] ?? '', style: TextStyle(color: kText1, fontSize: 14, fontWeight: FontWeight.w700)),
+                                if (g['nomeProfessor'] != null)
+                                  Text('Prof. ${g['nomeProfessor']}', style: TextStyle(color: kText2, fontSize: 11)),
+                              ]),
+                            ),
+                            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                              Text(_fmtData(g['dataExame']?.toString()), style: TextStyle(color: kText2, fontSize: 12)),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(color: (aprovado ? kSuccess : kDanger).withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+                                child: Text(aprovado ? 'Aprovado' : 'Reprovado', style: TextStyle(color: aprovado ? kSuccess : kDanger, fontSize: 11, fontWeight: FontWeight.w700)),
+                              ),
+                            ]),
+                          ]),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               );
             },

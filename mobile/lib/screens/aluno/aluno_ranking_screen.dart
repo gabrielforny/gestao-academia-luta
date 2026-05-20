@@ -107,7 +107,6 @@ class _AlunoRankingScreenState extends State<AlunoRankingScreen> {
 
   Widget _buildRankingList() {
     final top3 = _ranking.take(3).toList();
-    final rest = _ranking.length > 3 ? _ranking.sublist(3) : <Map<String, dynamic>>[];
 
     return RefreshIndicator(
       onRefresh: _loadRanking,
@@ -132,76 +131,74 @@ class _AlunoRankingScreenState extends State<AlunoRankingScreen> {
                 child: _Podium(top3: top3, meuId: _meuId, ehEu: _ehEu, faixaCor: _faixaCor, pts: _pts),
               ),
 
-            if (rest.isNotEmpty) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(4, 16, 4, 12),
-                child: Text('CLASSIFICAÇÃO GERAL',
-                    style: TextStyle(
-                        color: kText2, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.2)),
-              ),
-              ...rest.asMap().entries.map((e) {
-                final r = e.value;
-                final pos = e.key + 4;
-                final eu = _ehEu(r);
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: eu ? kPrimary.withOpacity(0.12) : kSurface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: eu ? kPrimary.withOpacity(0.4) : kBorder),
-                    ),
-                    child: Row(children: [
-                      SizedBox(
-                        width: 32,
-                        child: Text('$pos',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                                color: eu ? kPrimary : kText2,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800)),
-                      ),
-                      const SizedBox(width: 10),
-                      CircleAvatar(
-                        radius: 18,
-                        backgroundColor: _faixaCor(r['faixaAtualCor'] as String?).withOpacity(0.25),
-                        child: Text(
-                          _nome(r).isNotEmpty ? _nome(r)[0].toUpperCase() : '?',
-                          style: TextStyle(
-                              color: _faixaCor(r['faixaAtualCor'] as String?),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(
-                            _nome(r) + (eu ? ' (você)' : ''),
-                            style: TextStyle(
-                                color: eu ? kPrimary : kText1,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700),
-                          ),
-                          if (r['faixaAtualNome'] != null)
-                            Text(r['faixaAtualNome'],
-                                style: TextStyle(color: kText2, fontSize: 12)),
-                        ]),
-                      ),
-                      Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                        Text('${_pts(r)}',
-                            style: TextStyle(
-                                color: eu ? kPrimary : kText1,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800)),
-                        Text('pts', style: TextStyle(color: kText2, fontSize: 10)),
-                      ]),
-                    ]),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 16, 4, 12),
+              child: Text('CLASSIFICAÇÃO GERAL',
+                  style: TextStyle(
+                      color: kText2, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.2)),
+            ),
+            ..._ranking.asMap().entries.map((e) {
+              final r = e.value;
+              final pos = (r['posicao'] as num?)?.toInt() ?? (e.key + 1);
+              final eu = _ehEu(r);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: eu ? kPrimary.withOpacity(0.12) : kSurface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: eu ? kPrimary.withOpacity(0.4) : kBorder),
                   ),
-                );
-              }),
-            ],
+                  child: Row(children: [
+                    SizedBox(
+                      width: 32,
+                      child: Text('#$pos',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: eu ? kPrimary : kText2,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800)),
+                    ),
+                    const SizedBox(width: 10),
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: _faixaCor(r['faixaAtualCor'] as String?).withOpacity(0.25),
+                      child: Text(
+                        _nome(r).isNotEmpty ? _nome(r)[0].toUpperCase() : '?',
+                        style: TextStyle(
+                            color: _faixaCor(r['faixaAtualCor'] as String?),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(
+                          _nome(r) + (eu ? ' (você)' : ''),
+                          style: TextStyle(
+                              color: eu ? kPrimary : kText1,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700),
+                        ),
+                        if (r['faixaAtualNome'] != null)
+                          Text(r['faixaAtualNome'] as String,
+                              style: TextStyle(color: kText2, fontSize: 12)),
+                      ]),
+                    ),
+                    Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                      Text('${_pts(r)}',
+                          style: TextStyle(
+                              color: eu ? kPrimary : kText1,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800)),
+                      Text('pts', style: TextStyle(color: kText2, fontSize: 10)),
+                    ]),
+                  ]),
+                ),
+              );
+            }),
           ],
         ],
       ),

@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -6,12 +6,16 @@ import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-
 import { GraduacaoService } from '../../../../core/services/graduacao.service';
 import { ModalidadeService, ModalidadeDto } from '../../../../core/services/modalidade.service';
 import { FaixaDto, CreateFaixaRequest } from '../../../../core/models/graduacao.model';
-import { BadgeFaixaComponent } from '../../../../shared/components/badge-faixa/badge-faixa.component';
+interface GrupoModalidade {
+  modalidadeId: string;
+  nomeModalidade: string;
+  faixas: FaixaDto[];
+}
 
 @Component({
   selector: 'app-faixas',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, DragDropModule, BadgeFaixaComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, DragDropModule],
   templateUrl: './faixas.component.html',
 })
 export class FaixasComponent implements OnInit {
@@ -27,6 +31,20 @@ export class FaixasComponent implements OnInit {
   readonly salvando = signal(false);
   readonly erro = signal('');
   readonly editandoId = signal<string | null>(null);
+  readonly expandidos = signal<Set<string>>(new Set());
+  readonly modalEscolherModalidade = signal(false);
+  readonly novaFaixaModalidadeId = signal('');
+
+  readonly faixasAgrupadas = computed<GrupoModalidade[]>(() => {
+    const grupos = new Map<string, GrupoModalidade>();
+    for (const f of this.faixas()) {
+      if (!grupos.has(f.modalidadeId)) {
+        grupos.set(f.modalidadeId, { modalidadeId: f.modalidadeId, nomeModalidade: f.nomeModalidade, faixas: [] });
+      }
+      grupos.get(f.modalidadeId)!.faixas.push(f);
+    }
+    return Array.from(grupos.values());
+  });
 
   readonly form = this.fb.group({
     nome: ['', Validators.required],
@@ -39,7 +57,11 @@ export class FaixasComponent implements OnInit {
 
   ngOnInit(): void {
     this.modalidadeService.getAll().subscribe({
-      next: (res) => this.modalidades.set(res.dados ?? []),
+      next: (res) => {
+        this.modalidades.set(res.dados ?? []);
+        const todosExpandidos = new Set<string>((res.dados ?? []).map(m => m.id));
+        this.expandidos.set(todosExpandidos);
+      },
     });
     this.carregar();
   }
@@ -61,6 +83,30 @@ export class FaixasComponent implements OnInit {
       },
       error: () => this.carregando.set(false),
     });
+  }
+
+  toggleExpandido(modalidadeId: string): void {
+    const s = new Set(this.expandidos());
+    if (s.has(modalidadeId)) s.delete(modalidadeId);
+    else s.add(modalidadeId);
+    this.expandidos.set(s);
+  }
+
+  abrirModalCriar(): void {
+    if (this.modalidadeId()) {
+      this.abrirModal();
+    } else {
+      this.novaFaixaModalidadeId.set('');
+      this.modalEscolherModalidade.set(true);
+    }
+  }
+
+  confirmarModalidadeParaCriar(): void {
+    if (!this.novaFaixaModalidadeId()) return;
+    this.modalidadeId.set(this.novaFaixaModalidadeId());
+    this.onModalidadeChange();
+    this.modalEscolherModalidade.set(false);
+    setTimeout(() => this.abrirModal(), 50);
   }
 
   abrirModal(faixa?: FaixaDto): void {
@@ -117,11 +163,10 @@ export class FaixasComponent implements OnInit {
     });
   }
 
-  drop(event: CdkDragDrop<FaixaDto[]>): void {
-    if (!this.modalidadeId()) return;
-    const lista = [...this.faixas()];
+  drop(event: CdkDragDrop<FaixaDto[]>, grupo: GrupoModalidade): void {
+    const lista = [...grupo.faixas];
     moveItemInArray(lista, event.previousIndex, event.currentIndex);
-    this.faixas.set(lista);
-    this.graduacaoService.reordenarFaixas(this.modalidadeId(), lista.map((f) => f.id)).subscribe();
+    grupo.faixas = lista;
+    this.graduacaoService.reordenarFaixas(grupo.modalidadeId, lista.map((f) => f.id)).subscribe();
   }
 }

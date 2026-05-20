@@ -22,4 +22,13 @@ public class DashboardController : ControllerBase
         var resultado = await _dashboardService.GetResumoAsync(ct);
         return Ok(resultado);
     }
+
+    [HttpGet("frequencia")]
+    public async Task<IActionResult> GetFrequencia([FromQuery] int dias = 14, CancellationToken ct = default)
+    {
+        if (dias < 7) dias = 7;
+        if (dias > 90) dias = 90;
+        var resultado = await _dashboardService.GetFrequenciaDiariaAsync(dias, ct);
+        return Ok(resultado);
+    }
 }

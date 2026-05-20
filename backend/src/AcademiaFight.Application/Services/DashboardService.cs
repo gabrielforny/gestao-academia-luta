@@ -62,4 +62,24 @@ public class DashboardService : IDashboardService
             })
         });
     }
+
+    public async Task<BaseResponse<IEnumerable<FrequenciaDiariaDto>>> GetFrequenciaDiariaAsync(int dias, CancellationToken ct = default)
+    {
+        var hoje = DateTimeHelper.Hoje();
+        var inicio = hoje.AddDays(-(dias - 1));
+
+        var dados = await _db.Presencas
+            .Where(p => p.Data >= inicio && p.Data <= hoje)
+            .GroupBy(p => p.Data)
+            .Select(g => new FrequenciaDiariaDto { Data = g.Key, Total = g.Count() })
+            .ToListAsync(ct);
+
+        // Preenche dias sem presenças com zero
+        var resultado = Enumerable.Range(0, dias)
+            .Select(i => inicio.AddDays(i))
+            .Select(d => dados.FirstOrDefault(x => x.Data == d) ?? new FrequenciaDiariaDto { Data = d, Total = 0 })
+            .ToList();
+
+        return BaseResponse<IEnumerable<FrequenciaDiariaDto>>.Ok(resultado);
+    }
 }

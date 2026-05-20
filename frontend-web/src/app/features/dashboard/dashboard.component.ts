@@ -2,7 +2,7 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
-import { DashboardService, DashboardResumoDto } from '../../core/services/dashboard.service';
+import { DashboardService, DashboardResumoDto, FrequenciaDiariaDto } from '../../core/services/dashboard.service';
 import { AlunoService } from '../../core/services/aluno.service';
 import { AniversarianteDto } from '../../core/models/aluno.model';
 import { ModalidadeService } from '../../core/services/modalidade.service';
@@ -31,6 +31,7 @@ export class DashboardComponent implements OnInit {
   readonly resumoFin = signal<ResumoFinanceiroDto | null>(null);
   readonly pagamentosMes = signal<PagamentoDto[]>([]);
   readonly aniversariantes = signal<AniversarianteDto[]>([]);
+  readonly frequencia = signal<FrequenciaDiariaDto[]>([]);
   readonly carregando = signal(true);
   readonly erro = signal('');
   readonly filtroPag = signal<FiltroPag>('hoje');
@@ -64,6 +65,17 @@ export class DashboardComponent implements OnInit {
 
   readonly totalFiltrado = computed(() =>
     this.pagamentosFiltrados().reduce((s, p) => s + p.valor, 0)
+  );
+
+  readonly freqMax = computed(() => Math.max(...this.frequencia().map(f => f.total), 1));
+
+  readonly freqBars = computed(() =>
+    this.frequencia().map(f => ({
+      data: f.data,
+      total: f.total,
+      pct: Math.max(4, Math.round((f.total / this.freqMax()) * 100)),
+      label: f.data.slice(8, 10) + '/' + f.data.slice(5, 7),
+    }))
   );
 
   readonly passos = computed(() => [
@@ -123,6 +135,9 @@ export class DashboardComponent implements OnInit {
     });
     this.financeiroService.listar({ ano: this.anoAtual, mes: this.mesAtualNum, pageSize: 200 }).subscribe({
       next: (res) => this.pagamentosMes.set(res.dados ?? []),
+    });
+    this.dashboardService.getFrequencia(14).subscribe({
+      next: (res) => this.frequencia.set(res.dados ?? []),
     });
   }
 

@@ -108,6 +108,30 @@
       </div>
     </div>
 
+    <!-- Gráfico frequência diária -->
+    @if (frequencia().length > 0) {
+      <div class="dash-card freq-card">
+        <div class="dash-card-header">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="4" height="18" rx="1"/><rect x="10" y="8" width="4" height="13" rx="1"/><rect x="17" y="13" width="4" height="8" rx="1"/></svg>
+            Frequência diária — últimos 14 dias
+          </div>
+          <a routerLink="/app/presencas" class="dash-link">Ver presenças →</a>
+        </div>
+        <div class="freq-chart">
+          @for (bar of freqBars(); track bar.data) {
+            <div class="freq-col" [title]="bar.label + ': ' + bar.total + ' presenças'">
+              <div class="freq-num">{{ bar.total }}</div>
+              <div class="freq-bar-wrap">
+                <div class="freq-bar" [style.height.%]="bar.pct"></div>
+              </div>
+              <div class="freq-label">{{ bar.label }}</div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
     <!-- Linha: Financeiro + Aulas de hoje -->
     <div class="dash-row">
 
@@ -159,7 +183,7 @@
             @for (p of pagamentosFiltrados().slice(0, 5); track p.id) {
               <div class="fin-pag-row">
                 <div style="flex:1;min-width:0;">
-                  <div class="fin-pag-nome">{{ p.nomeAluno ?? p.descricao ?? '—' }}</div>
+                  <div class="fin-pag-nome">{{ p.nomeAluno || p.descricao || '—' }}</div>
                   <div class="fin-pag-data">Venc: {{ formatarData(p.dataVencimento) }}</div>
                 </div>
                 <span class="fin-pag-status" [class.atrasado]="p.status==='Atrasado'">{{ p.status }}</span>

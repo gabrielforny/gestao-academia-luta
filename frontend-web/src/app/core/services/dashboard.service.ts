@@ -12,6 +12,11 @@ export interface DashboardResumoDto {
   proximasAulas: ProximaAulaDto[];
 }
 
+export interface FrequenciaDiariaDto {
+  data: string;
+  total: number;
+}
+
 export interface ProximaAulaDto {
   horarioId: string;
   turma: string;
@@ -30,6 +35,12 @@ export class DashboardService {
   getResumo(): Observable<BaseResponse<DashboardResumoDto>> {
     return this.http.get<BaseResponse<DashboardResumoDto>>(
       `${environment.apiUrl}/api/dashboard/resumo`
+    );
+  }
+
+  getFrequencia(dias = 14): Observable<BaseResponse<FrequenciaDiariaDto[]>> {
+    return this.http.get<BaseResponse<FrequenciaDiariaDto[]>>(
+      `${environment.apiUrl}/api/dashboard/frequencia?dias=${dias}`
     );
   }
 }

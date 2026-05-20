@@ -24,7 +24,6 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
   private observer: IntersectionObserver | null = null;
 
   readonly tick = signal(0);
-  readonly testimonialIdx = signal(0);
   readonly pricingAnual = signal(false);
   readonly menuAberto = signal(false);
   readonly roiStudents = signal(120);
@@ -46,8 +45,9 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
 
   readonly dashStats = computed(() => [
     { label: 'Alunos ativos', val: String(247 + (this.tick() % 4)), delta: '+12%' },
-    { label: 'Receita do mês', val: 'R$ 38.4k', delta: '+18%' },
-    { label: 'Inadimplência', val: '3.2%', delta: '−41%' },
+    { label: 'Turmas ativas', val: '14', delta: '+2' },
+    { label: 'Presenças hoje', val: String(38 + (this.tick() % 3)), delta: '+9%' },
+    { label: 'Sem turma', val: '7', delta: '−3' },
   ]);
 
   readonly pricingPreco = computed(() => (this.pricingAnual() ? 119 : 149));
@@ -64,39 +64,6 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
     const growth = newStudents * fee;
     return { recovered, growth, total: recovered + growth, newStudents };
   });
-
-  readonly testimonialAtivo = computed(() => this.depoimentos[this.testimonialIdx()]);
-
-  readonly depoimentos = [
-    {
-      quote:
-        'Cortei a inadimplência de 14% pra menos de 4% em dois meses. O sistema cobra sozinho, eu só dou aula.',
-      name: 'Marcelo Tanaka',
-      role: 'Faixa Preta · Academia Tatame Norte, São Paulo',
-      avatar: 'MT',
-    },
-    {
-      quote:
-        'O ranking gamificado virou febre. Os alunos competem pra não faltar. Frequência subiu 38% no primeiro mês.',
-      name: 'Ana Beatriz Lopes',
-      role: 'Coach · Iron Fist Boxe, Belo Horizonte',
-      avatar: 'AB',
-    },
-    {
-      quote:
-        'Eu gerenciava 80 alunos numa planilha. Hoje tenho 240 e sobra tempo. Foi a melhor decisão que tomei pro negócio.',
-      name: 'Rodrigo Vieira',
-      role: 'Dono · Vieira Muay Thai, Curitiba',
-      avatar: 'RV',
-    },
-    {
-      quote:
-        'Em 6 meses dobrei a base de alunos sem contratar ninguém. O Tatame faz o trabalho de uma secretária por R$ 149.',
-      name: 'Camila Reis',
-      role: 'Sócia · Reis Jiu-Jitsu, Recife',
-      avatar: 'CR',
-    },
-  ];
 
   readonly problemas = [
     {
@@ -222,9 +189,6 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
           return [...next];
         });
       }, 1600),
-      setInterval(() => {
-        this.testimonialIdx.update((i) => (i + 1) % this.depoimentos.length);
-      }, 7000),
     );
 
     this.observer = new IntersectionObserver(
@@ -265,11 +229,4 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
     this.roiDefaultRate.set(+(e.target as HTMLInputElement).value);
   }
 
-  prevTestimonial(): void {
-    this.testimonialIdx.update((i) => (i - 1 + this.depoimentos.length) % this.depoimentos.length);
-  }
-
-  nextTestimonial(): void {
-    this.testimonialIdx.update((i) => (i + 1) % this.depoimentos.length);
-  }
 }

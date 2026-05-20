@@ -187,6 +187,57 @@
 .aniversariante-nome { flex: 1; font-size: 13px; font-weight: 500; color: var(--fg); }
 .aniversariante-data { font-size: 12px; font-weight: 600; color: #6366f1; background: rgba(99,102,241,0.1); padding: 2px 8px; border-radius: 99px; }
 
+/* Frequência diária */
+.freq-card { margin-bottom: 16px; }
+.freq-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 16px 18px 12px;
+  height: 120px;
+  box-sizing: content-type;
+}
+.freq-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+}
+.freq-num {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--fg-3);
+  line-height: 1;
+  min-height: 12px;
+}
+.freq-bar-wrap {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+.freq-bar {
+  width: 100%;
+  background: #6366f1;
+  border-radius: 4px 4px 2px 2px;
+  opacity: 0.75;
+  transition: opacity 0.15s;
+  min-height: 4px;
+}
+.freq-col:hover .freq-bar { opacity: 1; }
+.freq-label {
+  font-size: 9px;
+  color: var(--fg-3);
+  white-space: nowrap;
+  line-height: 1;
+}
+@media (max-width: 700px) {
+  .freq-label { display: none; }
+  .freq-chart { gap: 3px; }
+}
+
 /* Onboarding */
 .onboarding-card { background: var(--app-surface); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 20px; overflow: hidden; }
 .onboarding-header { display: flex; align-items: center; gap: 14px; padding: 16px 20px; border-bottom: 1px solid var(--line); }

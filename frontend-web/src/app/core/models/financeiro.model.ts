@@ -28,6 +28,7 @@ export interface CreatePagamentoRequest {
 
 export interface UpdatePagamentoRequest {
   status: number;
+  valor?: number;
   dataPagamento?: string;
   formaPagamento?: string;
   observacoes?: string;
@@ -36,6 +37,7 @@ export interface UpdatePagamentoRequest {
 export interface ResumoFinanceiroDto {
   totalRecebidoMes: number;
   totalPendenteMes: number;
+  totalPrevistoMes: number;
   totalAtrasado: number;
   totalAlunos: number;
   alunosInadimplentes: number;
@@ -66,6 +68,7 @@ export const StatusPagamento: Record<number, string> = {
   2: 'Pendente',
   3: 'Atrasado',
   4: 'Cancelado',
+  5: 'Previsto',
 };
 
 export interface ReceitaMensalDto {

@@ -42,9 +42,11 @@
     </div>
   } @else {
     <!-- Pódio top 3 -->
-    <app-podium [top3]="top3" />
+    @if (top3.length >= 2) {
+      <app-podium [top3]="top3" />
+    }
 
-    <!-- Lista a partir do 4º -->
+    <!-- Lista completa -->
     <div class="table-wrapper">
       <table class="data-table">
         <thead>
@@ -59,7 +61,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (item of restante; track item.alunoId) {
+          @for (item of leaderboard()?.items ?? []; track item.alunoId) {
             <tr [class.minha-linha]="item.alunoId === usuarioLogado?.sub">
               <td><strong>#{{ item.posicao }}</strong></td>
               <td>

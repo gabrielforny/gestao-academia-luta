@@ -176,7 +176,50 @@ public class UsuarioService : IUsuarioService
 
         _db.Usuarios.Add(aluno);
         await _db.SaveChangesAsync(ct);
+
+        if (request.PlanoId.HasValue && request.DiaVencimento.HasValue)
+        {
+            var plano = await _db.Planos.FindAsync([request.PlanoId.Value], ct);
+            if (plano is not null)
+                await GerarPagamentosIniciaisAsync(aluno.Id, plano.ValorMensal, request.DiaVencimento.Value, ct);
+        }
+
         return BaseResponse<AlunoDto>.Ok(MapearAlunoDto(aluno));
+    }
+
+    private async Task GerarPagamentosIniciaisAsync(Guid alunoId, decimal valorMensal, int diaVencimento, CancellationToken ct)
+    {
+        var hoje = DateOnly.FromDateTime(DateTime.UtcNow);
+        const int mesesPrevisao = 12;
+
+        for (int i = 0; i < mesesPrevisao; i++)
+        {
+            var refDate = hoje.AddMonths(i);
+            var diasNoMes = DateTime.DaysInMonth(refDate.Year, refDate.Month);
+            var dia = Math.Clamp(diaVencimento, 1, diasNoMes);
+            var vencimento = new DateOnly(refDate.Year, refDate.Month, dia);
+
+            StatusPagamento status;
+            if (i == 0)
+                status = vencimento < hoje ? StatusPagamento.Atrasado : StatusPagamento.Pendente;
+            else
+                status = StatusPagamento.Previsto;
+
+            var descricao = new DateOnly(refDate.Year, refDate.Month, 1).ToString("MMMM/yyyy",
+                new System.Globalization.CultureInfo("pt-BR"));
+
+            _db.Pagamentos.Add(new Pagamento
+            {
+                AlunoId = alunoId,
+                Tipo = TipoPagamento.Mensalidade,
+                Status = status,
+                Valor = valorMensal,
+                Descricao = $"Mensalidade {char.ToUpper(descricao[0]) + descricao[1..]}",
+                DataVencimento = vencimento,
+            });
+        }
+
+        await _db.SaveChangesAsync(ct);
     }
 
     public async Task<BaseResponse<AlunoDto>> AtualizarAlunoAsync(Guid id, UpdateAlunoDto request, CancellationToken ct = default)
@@ -204,6 +247,20 @@ public class UsuarioService : IUsuarioService
         var aluno = await _db.Usuarios.FirstOrDefaultAsync(x => x.Id == id && x.Perfil == PerfilUsuario.Aluno, ct);
         if (aluno is null) return BaseResponse<AlunoDto>.Falha("Aluno não encontrado.");
         aluno.Ativo = ativo;
+
+        if (!ativo)
+        {
+            // Cancel all future Previsto payments — they don't represent real revenue anymore
+            var hoje = DateOnly.FromDateTime(DateTime.UtcNow);
+            var futuros = await _db.Pagamentos
+                .Where(p => p.AlunoId == id
+                         && p.Status == AcademiaFight.Domain.Enums.StatusPagamento.Previsto
+                         && p.DataVencimento > hoje)
+                .ToListAsync(ct);
+            foreach (var p in futuros)
+                p.Status = AcademiaFight.Domain.Enums.StatusPagamento.Cancelado;
+        }
+
         await _db.SaveChangesAsync(ct);
         return BaseResponse<AlunoDto>.Ok(MapearAlunoDto(aluno));
     }

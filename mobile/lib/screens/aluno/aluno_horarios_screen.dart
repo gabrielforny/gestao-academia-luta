@@ -252,7 +252,7 @@ class _AlunoHorariosScreenState extends State<AlunoHorariosScreen> {
                       Row(children: [
                         Icon(Icons.person_outline_rounded, size: 13, color: kText2),
                         const SizedBox(width: 4),
-                        Text('Prof. $prof', style: TextStyle(color: kText2, fontSize: 12)),
+                        Flexible(child: Text('Prof. $prof', style: TextStyle(color: kText2, fontSize: 12), overflow: TextOverflow.ellipsis)),
                       ]),
                     ],
                   ],

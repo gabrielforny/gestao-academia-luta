@@ -30,7 +30,7 @@ public class RankingService : IRankingService
     public async Task<LeaderboardDto> GetLeaderboardAcademiaAsync(string periodo, int pagina = 1, CancellationToken ct = default)
     {
         var alunoIds = await _db.Usuarios
-            .Where(u => u.Ativo)
+            .Where(u => u.Ativo && u.Perfil == AcademiaFight.Domain.Enums.PerfilUsuario.Aluno)
             .Select(u => u.Id)
             .ToListAsync(ct);
 

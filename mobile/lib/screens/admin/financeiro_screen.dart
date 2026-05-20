@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_client.dart';
 import '../../core/constants.dart';
+import '../../core/tab_refresh.dart';
 
 class AdminFinanceiroScreen extends StatefulWidget {
   const AdminFinanceiroScreen({super.key});
@@ -26,7 +27,18 @@ class _AdminFinanceiroScreenState extends State<AdminFinanceiroScreen> {
     final now = DateTime.now();
     _ano = now.year;
     _mes = now.month;
+    adminTabNotifier.addListener(_onTabChanged);
     _load();
+  }
+
+  @override
+  void dispose() {
+    adminTabNotifier.removeListener(_onTabChanged);
+    super.dispose();
+  }
+
+  void _onTabChanged() {
+    if (adminTabNotifier.value == 4) _load();
   }
 
   Future<void> _load() async {

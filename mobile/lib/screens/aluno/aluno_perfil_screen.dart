@@ -4,7 +4,6 @@ import '../../core/api_client.dart';
 import '../../core/auth_storage.dart';
 import '../../core/constants.dart';
 import '../../core/tab_refresh.dart';
-import '../notificacoes_screen.dart';
 import 'aluno_qrcode_sheet.dart';
 
 class AlunoPerfilScreen extends StatefulWidget {
@@ -356,8 +355,6 @@ class _AlunoPerfilScreenState extends State<AlunoPerfilScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            const SinoNotificacoes(),
-                            const SizedBox(width: 8),
                             GestureDetector(
                               onTap: () => context.push('/alterar-senha'),
                               child: Container(

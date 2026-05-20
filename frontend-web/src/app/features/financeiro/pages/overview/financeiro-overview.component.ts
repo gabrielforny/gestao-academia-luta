@@ -34,6 +34,10 @@ export class FinanceiroOverviewComponent implements OnInit {
   readonly anoAtual = signal(this.hoje.getFullYear());
   readonly nomeMes = computed(() => `${MESES[this.mesAtual() - 1]} ${this.anoAtual()}`);
   readonly ehMesAtual = computed(() => this.mesAtual() === this.hoje.getMonth() + 1 && this.anoAtual() === this.hoje.getFullYear());
+  readonly ehMesFuturo = computed(() => {
+    const ano = this.anoAtual(), mes = this.mesAtual(), hj = this.hoje;
+    return ano > hj.getFullYear() || (ano === hj.getFullYear() && mes > hj.getMonth() + 1);
+  });
 
   // ── Estado geral ──────────────────────────────────────────────
   readonly carregando = signal(true);
@@ -60,6 +64,12 @@ export class FinanceiroOverviewComponent implements OnInit {
   readonly modalExcluir = signal(false);
   readonly pagamentoParaExcluir = signal<PagamentoDto | null>(null);
   readonly excluindo = signal(false);
+
+  // ── Modal editar valor ─────────────────────────────────────────
+  readonly modalEditarValor = signal(false);
+  readonly pagamentoEditando = signal<PagamentoDto | null>(null);
+  readonly novoValor = signal(0);
+  readonly salvandoValor = signal(false);
 
   readonly novoForm = signal<CreatePagamentoRequest>({
     alunoId: '', tipo: 1, status: 2, valor: 0,
@@ -233,6 +243,23 @@ export class FinanceiroOverviewComponent implements OnInit {
     });
   }
 
+  abrirEditarValor(p: PagamentoDto): void {
+    this.pagamentoEditando.set(p);
+    this.novoValor.set(p.valor);
+    this.modalEditarValor.set(true);
+    this.fecharDropdownAcao();
+  }
+
+  salvarNovoValor(): void {
+    const p = this.pagamentoEditando();
+    if (!p || this.novoValor() <= 0) return;
+    this.salvandoValor.set(true);
+    this.financeiroService.atualizar(p.id, { status: p.status === 'Pago' ? 1 : p.status === 'Pendente' ? 2 : p.status === 'Atrasado' ? 3 : p.status === 'Cancelado' ? 4 : 5, valor: this.novoValor() }).subscribe({
+      next: () => { this.modalEditarValor.set(false); this.salvandoValor.set(false); this.carregarTudo(); },
+      error: () => this.salvandoValor.set(false),
+    });
+  }
+
   // ── Helpers ────────────────────────────────────────────────────
   formatarMoeda(valor: number): string {
     return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -247,7 +274,7 @@ export class FinanceiroOverviewComponent implements OnInit {
   badgeStatus(status: string): string {
     const map: Record<string, string> = {
       Pago: 'badge-pago', Pendente: 'badge-pendente',
-      Atrasado: 'badge-atrasado', Cancelado: 'badge-cancelado',
+      Atrasado: 'badge-atrasado', Cancelado: 'badge-cancelado', Previsto: 'badge-previsto',
     };
     return map[status] ?? '';
   }

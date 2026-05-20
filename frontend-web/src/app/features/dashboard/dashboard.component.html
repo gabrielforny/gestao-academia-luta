@@ -4,6 +4,47 @@
     <p>Bem-vindo, {{ authService.currentUser()?.nome ?? 'usuário' }}!</p>
   </div>
 
+  <!-- Onboarding: aparece enquanto o setup não está completo -->
+  @if (!carregando() && !setupCompleto()) {
+    <div class="onboarding-card">
+      <div class="onboarding-header">
+        <div class="onboarding-icon">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="onboarding-titulo">Primeiros passos</div>
+          <div class="onboarding-subtitulo">Siga a ordem abaixo para configurar sua academia.</div>
+        </div>
+        <div class="onboarding-progresso">
+          {{ passosFeitos() }}/{{ passos().length }}
+        </div>
+      </div>
+
+      <div class="onboarding-steps">
+        @for (passo of passos(); track passo.id; let i = $index) {
+          <div class="onboarding-step" [class.feito]="passo.feito" [class.bloqueado]="!passo.feito && i > 0 && !passos()[i-1].feito">
+            <div class="step-numero">
+              @if (passo.feito) {
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+              } @else {
+                {{ i + 1 }}
+              }
+            </div>
+            <div class="step-corpo">
+              <div class="step-titulo">{{ passo.titulo }}</div>
+              <div class="step-descricao">{{ passo.descricao }}</div>
+            </div>
+            @if (!passo.feito) {
+              <a [routerLink]="passo.link" class="step-btn">{{ passo.linkLabel }} →</a>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+
   @if (carregando()) {
     <div class="metrics-grid">
       @for (i of [1,2,3,4]; track i) {

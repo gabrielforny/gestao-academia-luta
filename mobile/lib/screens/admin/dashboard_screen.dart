@@ -4,7 +4,6 @@ import '../../core/api_client.dart';
 import '../../core/auth_storage.dart';
 import '../../core/constants.dart';
 import '../../core/widgets.dart';
-import '../notificacoes_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -112,8 +111,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     ]),
                     Row(
                       children: [
-                        const SinoNotificacoes(),
-                        const SizedBox(width: 4),
                         IconButton(
                           onPressed: () => context.push('/admin/dashboard/configuracoes'),
                           icon: Icon(Icons.settings_rounded, color: kText2, size: 22),

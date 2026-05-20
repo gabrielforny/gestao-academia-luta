@@ -6,4 +6,5 @@ public enum StatusPagamento
     Pendente = 2,
     Atrasado = 3,
     Cancelado = 4,
+    Previsto = 5,
 }

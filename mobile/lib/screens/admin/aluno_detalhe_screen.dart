@@ -99,40 +99,50 @@ class _AdminAlunoDetalheScreenState extends State<AdminAlunoDetalheScreen> {
   // ── Graduar ──────────────────────────────────────────
 
   Future<void> _abrirGraduar() async {
-    // Carrega faixas e filtra pelas modalidades do aluno
     List<Map<String, dynamic>> faixas = [];
     try {
       final res = await dio.get('/api/faixas');
       faixas = (res.data['dados'] as List? ?? []).cast<Map<String, dynamic>>();
     } catch (_) {}
-
     if (!mounted) return;
 
-    // Modalidades em que o aluno está matriculado
-    final turmasDetalhes = (_aluno?['turmasDetalhes'] as List? ?? [])
-        .cast<Map<String, dynamic>>();
+    final turmasDetalhes = (_aluno?['turmasDetalhes'] as List? ?? []).cast<Map<String, dynamic>>();
     final modalidadesAluno = <String>{
       for (final t in turmasDetalhes)
         if (t['modalidadeId'] != null) t['modalidadeId'].toString(),
     };
 
-    // Agrupa faixas por modalidade, filtrando apenas as do aluno
-    final Map<String, List<Map<String, dynamic>>> faixasPorMod = {};
+    final Map<String, Map<String, dynamic>> modMap = {};
     for (final f in faixas) {
       final modId = f['modalidadeId']?.toString() ?? '';
       if (modalidadesAluno.isNotEmpty && !modalidadesAluno.contains(modId)) continue;
-      final modNome = f['nomeModalidade']?.toString() ?? 'Sem modalidade';
-      faixasPorMod.putIfAbsent(modNome, () => []).add(f);
+      modMap.putIfAbsent(modId, () => {
+        'id': modId,
+        'nome': f['nomeModalidade']?.toString() ?? 'Sem modalidade',
+        'faixas': <Map<String, dynamic>>[],
+      });
+      (modMap[modId]!['faixas'] as List<Map<String, dynamic>>).add(f);
     }
-
-    // Se não filtrou nada (aluno sem turma), mostra tudo agrupado
-    if (faixasPorMod.isEmpty) {
+    if (modMap.isEmpty) {
       for (final f in faixas) {
-        final modNome = f['nomeModalidade']?.toString() ?? 'Sem modalidade';
-        faixasPorMod.putIfAbsent(modNome, () => []).add(f);
+        final modId = f['modalidadeId']?.toString() ?? '';
+        modMap.putIfAbsent(modId, () => {
+          'id': modId,
+          'nome': f['nomeModalidade']?.toString() ?? 'Sem modalidade',
+          'faixas': <Map<String, dynamic>>[],
+        });
+        (modMap[modId]!['faixas'] as List<Map<String, dynamic>>).add(f);
       }
     }
 
+    final mods = modMap.values.toList();
+    for (final m in mods) {
+      (m['faixas'] as List<Map<String, dynamic>>)
+          .sort((a, b) => (a['ordem'] as int? ?? 0).compareTo(b['ordem'] as int? ?? 0));
+    }
+
+    int step = mods.length <= 1 ? 1 : 0;
+    Map<String, dynamic>? modSel = mods.length <= 1 && mods.isNotEmpty ? mods.first : null;
     Map<String, dynamic>? faixaSel;
     final obsCtrl = TextEditingController();
     bool gerarCobranca = false;
@@ -145,62 +155,94 @@ class _AdminAlunoDetalheScreenState extends State<AdminAlunoDetalheScreen> {
       backgroundColor: kSurface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModal) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
+        builder: (ctx, setModal) {
+          final totalSteps = mods.length <= 1 ? 2 : 3;
+          final activeStep = mods.length <= 1 ? step - 1 : step;
+          final canGoBack = step > 0 && !(mods.length <= 1 && step == 1);
+
+          Widget stepContent;
+          if (step == 0) {
+            stepContent = Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Text('Graduar Aluno', style: TextStyle(color: kText1, fontSize: 18, fontWeight: FontWeight.w800)),
-                    const Spacer(),
-                    IconButton(onPressed: () => Navigator.of(ctx).pop(), icon: Icon(Icons.close, color: kText2)),
-                  ],
-                ),
-                Text('${_aluno?['nome'] ?? ''}', style: TextStyle(color: kText2, fontSize: 13)),
-                const SizedBox(height: 16),
-                if (faixasPorMod.isEmpty)
+                Text('Selecione a modalidade', style: TextStyle(color: kText2, fontSize: 13)),
+                const SizedBox(height: 14),
+                ...mods.map((m) => GestureDetector(
+                  onTap: () => setModal(() { modSel = m; step = 1; }),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(color: kBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kBorder)),
+                    child: Row(children: [
+                      Icon(Icons.sports_martial_arts_rounded, color: kPrimary, size: 22),
+                      const SizedBox(width: 12),
+                      Expanded(child: Text(m['nome']?.toString() ?? '', style: TextStyle(color: kText1, fontSize: 15, fontWeight: FontWeight.w700))),
+                      Icon(Icons.chevron_right_rounded, color: kText2),
+                    ]),
+                  ),
+                )),
+              ],
+            );
+          } else if (step == 1) {
+            final faixasMod = (modSel?['faixas'] as List? ?? []).cast<Map<String, dynamic>>();
+            stepContent = Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Selecione a faixa — ${modSel?['nome'] ?? ''}', style: TextStyle(color: kText2, fontSize: 13)),
+                const SizedBox(height: 14),
+                if (faixasMod.isEmpty)
                   Text('Nenhuma faixa disponível.', style: TextStyle(color: kText2))
                 else
-                  ...faixasPorMod.entries.map((entry) => Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Text(
-                          entry.key.toUpperCase(),
-                          style: TextStyle(color: kPrimary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1),
+                  ...faixasMod.map((f) {
+                    final cor = _parseCor(f['cor']?.toString());
+                    final sel = faixaSel?['id'] == f['id'];
+                    return GestureDetector(
+                      onTap: () => setModal(() => faixaSel = f),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: sel ? kPrimary.withOpacity(0.15) : kBg,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: sel ? kPrimary : kBorder),
                         ),
+                        child: Row(children: [
+                          Container(width: 14, height: 14, decoration: BoxDecoration(shape: BoxShape.circle, color: cor)),
+                          const SizedBox(width: 10),
+                          Expanded(child: Text(f['nome'] ?? '', style: TextStyle(color: kText1, fontSize: 13, fontWeight: FontWeight.w600))),
+                          if (sel) Icon(Icons.check_circle_rounded, color: kPrimary, size: 18),
+                        ]),
                       ),
-                      ...entry.value.map((f) {
-                        final cor = _parseCor(f['cor']?.toString());
-                        final sel = faixaSel?['id'] == f['id'];
-                        return GestureDetector(
-                          onTap: () => setModal(() => faixaSel = f),
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: sel ? kPrimary.withOpacity(0.15) : kBg,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: sel ? kPrimary : kBorder),
-                            ),
-                            child: Row(children: [
-                              Container(width: 14, height: 14, decoration: BoxDecoration(shape: BoxShape.circle, color: cor)),
-                              const SizedBox(width: 10),
-                              Expanded(child: Text(f['nome'] ?? '', style: TextStyle(color: kText1, fontSize: 13, fontWeight: FontWeight.w600))),
-                              if (sel) Icon(Icons.check_circle_rounded, color: kPrimary, size: 18),
-                            ]),
-                          ),
-                        );
-                      }),
-                      const SizedBox(height: 8),
-                    ],
-                  )),
-                const SizedBox(height: 12),
+                    );
+                  }),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity, height: 48,
+                  child: ElevatedButton(
+                    onPressed: faixaSel == null ? null : () => setModal(() => step = 2),
+                    style: ElevatedButton.styleFrom(backgroundColor: kPrimary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    child: const Text('Próximo', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                  ),
+                ),
+              ],
+            );
+          } else {
+            stepContent = Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(color: kPrimary.withOpacity(0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: kPrimary.withOpacity(0.3))),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Container(width: 12, height: 12, decoration: BoxDecoration(shape: BoxShape.circle, color: _parseCor(faixaSel?['cor']?.toString()))),
+                    const SizedBox(width: 8),
+                    Text('${modSel?['nome']} · ${faixaSel?['nome'] ?? ''}', style: TextStyle(color: kPrimary, fontSize: 13, fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+                const SizedBox(height: 16),
                 TextField(
                   controller: obsCtrl,
                   style: TextStyle(color: kText1),
@@ -216,20 +258,13 @@ class _AdminAlunoDetalheScreenState extends State<AdminAlunoDetalheScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                // Toggle cobrança
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(color: kBg, borderRadius: BorderRadius.circular(10), border: Border.all(color: kBorder)),
-                  child: Row(
-                    children: [
-                      Expanded(child: Text('Gerar cobrança financeira', style: TextStyle(color: kText1, fontSize: 13))),
-                      Switch(
-                        value: gerarCobranca,
-                        activeColor: kPrimary,
-                        onChanged: (v) => setModal(() => gerarCobranca = v),
-                      ),
-                    ],
-                  ),
+                  child: Row(children: [
+                    Expanded(child: Text('Gerar cobrança financeira', style: TextStyle(color: kText1, fontSize: 13))),
+                    Switch(value: gerarCobranca, activeColor: kPrimary, onChanged: (v) => setModal(() => gerarCobranca = v)),
+                  ]),
                 ),
                 if (gerarCobranca) ...[
                   const SizedBox(height: 10),
@@ -253,10 +288,9 @@ class _AdminAlunoDetalheScreenState extends State<AdminAlunoDetalheScreen> {
                 ],
                 const SizedBox(height: 20),
                 SizedBox(
-                  width: double.infinity,
-                  height: 50,
+                  width: double.infinity, height: 50,
                   child: ElevatedButton(
-                    onPressed: (salvando || faixaSel == null) ? null : () async {
+                    onPressed: salvando ? null : () async {
                       setModal(() => salvando = true);
                       try {
                         final hoje = DateTime.now();
@@ -276,8 +310,8 @@ class _AdminAlunoDetalheScreenState extends State<AdminAlunoDetalheScreen> {
                             final venc = '${hj.year}-${hj.month.toString().padLeft(2, '0')}-${hj.day.toString().padLeft(2, '0')}';
                             await dio.post('/api/financeiro', data: {
                               'alunoId': widget.alunoId,
-                              'tipo': 5, // Graduacao
-                              'status': 2, // Pendente
+                              'tipo': 5,
+                              'status': 2,
                               'valor': valor,
                               'descricao': 'Graduação - ${faixaSel!['nome']}',
                               'dataVencimento': venc,
@@ -301,21 +335,65 @@ class _AdminAlunoDetalheScreenState extends State<AdminAlunoDetalheScreen> {
                         setModal(() => salvando = false);
                       }
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: kPrimary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
+                    style: ElevatedButton.styleFrom(backgroundColor: kPrimary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                     child: salvando
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : const Text('Confirmar Graduação', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                   ),
                 ),
-                const SizedBox(height: 8),
               ],
+            );
+          }
+
+          return Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      if (canGoBack)
+                        GestureDetector(
+                          onTap: () => setModal(() {
+                            step--;
+                            if (step == 0) { modSel = null; faixaSel = null; }
+                            else if (step == 1) faixaSel = null;
+                          }),
+                          child: const Padding(
+                            padding: EdgeInsets.only(right: 8),
+                            child: Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF94A3B8), size: 18),
+                          ),
+                        ),
+                      Text('Graduar Aluno', style: TextStyle(color: kText1, fontSize: 18, fontWeight: FontWeight.w800)),
+                      const Spacer(),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: List.generate(totalSteps, (i) => Container(
+                          margin: const EdgeInsets.only(left: 4),
+                          width: i == activeStep ? 16 : 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: i == activeStep ? kPrimary : kBorder,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        )),
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton(onPressed: () => Navigator.of(ctx).pop(), icon: Icon(Icons.close, color: kText2)),
+                    ],
+                  ),
+                  Text(_aluno?['nome'] ?? '', style: TextStyle(color: kText2, fontSize: 13)),
+                  const Divider(height: 20),
+                  stepContent,
+                  const SizedBox(height: 8),
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }

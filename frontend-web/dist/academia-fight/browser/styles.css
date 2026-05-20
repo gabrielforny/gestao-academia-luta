@@ -541,7 +541,7 @@ body {
   margin-bottom: 20px;
 }
 .table-wrapper {
-  overflow: visible;
+  overflow-x: auto;
   border-radius: 8px;
   border: 1px solid var(--app-border);
   background: var(--app-surface);
@@ -549,6 +549,7 @@ body {
 .table-wrapper > table {
   border-radius: 8px;
   overflow: hidden;
+  min-width: 480px;
 }
 .data-table {
   width: 100%;
@@ -904,6 +905,20 @@ body {
   color: #166534;
   font-size: 0.875rem;
 }
+.faixas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.faixa-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 8px;
+}
 .requisitos-card {
   background: var(--app-summary-bg);
   border: 1px solid var(--app-border);
@@ -1018,6 +1033,9 @@ body {
 }
 .inline-block {
   display: inline-block;
+}
+.inline {
+  display: inline;
 }
 .flex {
   display: flex;
@@ -1219,6 +1237,9 @@ body {
 .uppercase {
   text-transform: uppercase;
 }
+.italic {
+  font-style: italic;
+}
 .text-green-700 {
   --tw-text-opacity: 1;
   color: rgb(21 128 61 / var(--tw-text-opacity, 1));
@@ -1258,6 +1279,9 @@ body {
 .text-white {
   --tw-text-opacity: 1;
   color: rgb(255 255 255 / var(--tw-text-opacity, 1));
+}
+.underline {
+  text-decoration-line: underline;
 }
 .opacity-25 {
   opacity: 0.25;
@@ -1341,6 +1365,41 @@ html.dark {
   --app-table-row-border: #222222;
   --app-skeleton-bg: #2a2a2a;
   --app-summary-bg: #161616;
+}
+@media (max-width: 768px) {
+  .page-container {
+    padding: 16px;
+  }
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+  .page-header .header-actions {
+    width: 100%;
+  }
+  .filters-row {
+    gap: 8px;
+  }
+  .data-table th,
+  .data-table td {
+    padding: 10px 12px;
+  }
+  .modal {
+    max-width: calc(100vw - 32px);
+    padding: 20px 16px;
+  }
+  .form-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .stats-row {
+    gap: 8px;
+  }
+  .stat-card {
+    min-width: 0;
+    padding: 12px;
+  }
 }
 .hover\:bg-primary-700:hover {
   --tw-bg-opacity: 1;

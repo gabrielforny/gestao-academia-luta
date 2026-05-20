@@ -50,6 +50,103 @@ class _AlunoGraduacoesScreenState extends State<AlunoGraduacoesScreen> {
     }
   }
 
+  List<Widget> _buildHistoricoByMod() {
+    // Group by modality preserving insertion order (already sorted by date desc)
+    final Map<String, List<Map<String, dynamic>>> byMod = {};
+    for (final g in _graduacoes) {
+      final mod = g['nomeModalidade']?.toString() ?? 'Sem modalidade';
+      byMod.putIfAbsent(mod, () => []).add(g);
+    }
+
+    return byMod.entries.map((entry) {
+      final items = entry.value;
+      return SliverMainAxisGroup(slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+            child: Text(
+              entry.key.toUpperCase(),
+              style: TextStyle(color: kPrimary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.2),
+            ),
+          ),
+        ),
+        SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (_, i) {
+              final g = items[i];
+              final aprovado = g['aprovado'] == true;
+              final cor = _hexCor(g['corFaixa'] as String?);
+              final isFirst = i == 0;
+              final isLast = i == items.length - 1;
+
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                child: IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(
+                        width: 40,
+                        child: Column(children: [
+                          if (!isFirst)
+                            Expanded(flex: 1, child: Center(child: Container(width: 2, color: kBorder))),
+                          Container(
+                            width: 14, height: 14,
+                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: aprovado ? cor : kBorder,
+                              border: Border.all(color: aprovado ? cor.withOpacity(0.5) : kBorder, width: 2),
+                            ),
+                          ),
+                          if (!isLast)
+                            Expanded(flex: 3, child: Center(child: Container(width: 2, color: kBorder))),
+                        ]),
+                      ),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: kSurface,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: aprovado && isFirst ? cor.withOpacity(0.4) : kBorder),
+                            ),
+                            child: Row(children: [
+                              Container(width: 10, height: 10, margin: const EdgeInsets.only(right: 12), decoration: BoxDecoration(shape: BoxShape.circle, color: cor)),
+                              Expanded(
+                                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  Text(g['nomeFaixa'] ?? '', style: TextStyle(color: kText1, fontSize: 14, fontWeight: FontWeight.w700)),
+                                  if (g['nomeProfessor'] != null)
+                                    Text('Prof. ${g['nomeProfessor']}', style: TextStyle(color: kText2, fontSize: 11)),
+                                ]),
+                              ),
+                              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                                Text(_fmtData(g['dataExame']?.toString()), style: TextStyle(color: kText2, fontSize: 12)),
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(color: (aprovado ? kSuccess : kDanger).withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+                                  child: Text(aprovado ? 'Aprovado' : 'Reprovado', style: TextStyle(color: aprovado ? kSuccess : kDanger, fontSize: 11, fontWeight: FontWeight.w700)),
+                                ),
+                              ]),
+                            ]),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+            childCount: items.length,
+          ),
+        ),
+      ]);
+    }).toList();
+  }
+
   Color _hexCor(String? hex) {
     if (hex == null || hex.isEmpty) return kPrimary;
     try { return Color(int.parse(hex.replaceAll('#', '0xFF'))); } catch (_) { return kPrimary; }
@@ -158,7 +255,7 @@ class _AlunoGraduacoesScreenState extends State<AlunoGraduacoesScreen> {
                 ),
               ),
 
-              if (_graduacoes.isEmpty)
+                      if (_graduacoes.isEmpty)
                 SliverToBoxAdapter(
                   child: ListaVazia(
                     icon: Icons.military_tech_outlined,
@@ -166,115 +263,7 @@ class _AlunoGraduacoesScreenState extends State<AlunoGraduacoesScreen> {
                     subtitulo: 'Seu histórico de faixas aparecerá aqui.',
                   ),
                 )
-              else
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (_, i) {
-                      final g = _graduacoes[i];
-                      final aprovado = g['aprovado'] == true;
-                      final cor = _hexCor(g['corFaixa'] as String?);
-                      final isFirst = i == 0;
-                      final isLast = i == _graduacoes.length - 1;
-
-                      return Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                        child: IntrinsicHeight(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // Timeline line
-                              SizedBox(
-                                width: 40,
-                                child: Column(
-                                  children: [
-                                    if (!isFirst)
-                                      Expanded(flex: 1, child: Center(child: Container(width: 2, color: kBorder))),
-                                    Container(
-                                      width: 14,
-                                      height: 14,
-                                      margin: const EdgeInsets.symmetric(vertical: 4),
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: aprovado ? cor : kBorder,
-                                        border: Border.all(color: aprovado ? cor.withOpacity(0.5) : kBorder, width: 2),
-                                      ),
-                                    ),
-                                    if (!isLast)
-                                      Expanded(flex: 3, child: Center(child: Container(width: 2, color: kBorder))),
-                                  ],
-                                ),
-                              ),
-                              // Card
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.only(bottom: 10),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(14),
-                                    decoration: BoxDecoration(
-                                      color: kSurface,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: aprovado && isFirst ? cor.withOpacity(0.4) : kBorder,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          width: 10,
-                                          height: 10,
-                                          margin: const EdgeInsets.only(right: 12),
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: cor,
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(g['nomeFaixa'] ?? '', style: TextStyle(color: kText1, fontSize: 14, fontWeight: FontWeight.w700)),
-                                              if (g['nomeModalidade'] != null)
-                                                Text(g['nomeModalidade'], style: TextStyle(color: kText2, fontSize: 11)),
-                                              if (g['nomeProfessor'] != null)
-                                                Text('Prof. ${g['nomeProfessor']}', style: TextStyle(color: kText2, fontSize: 11)),
-                                            ],
-                                          ),
-                                        ),
-                                        Column(
-                                          crossAxisAlignment: CrossAxisAlignment.end,
-                                          children: [
-                                            Text(_fmtData(g['dataExame']?.toString()), style: TextStyle(color: kText2, fontSize: 12)),
-                                            const SizedBox(height: 4),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                              decoration: BoxDecoration(
-                                                color: (aprovado ? kSuccess : kDanger).withOpacity(0.15),
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
-                                              child: Text(
-                                                aprovado ? 'Aprovado' : 'Reprovado',
-                                                style: TextStyle(
-                                                  color: aprovado ? kSuccess : kDanger,
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                    childCount: _graduacoes.length,
-                  ),
-                ),
+              else ..._buildHistoricoByMod(),
 
               const SliverToBoxAdapter(child: SizedBox(height: 24)),
             ],

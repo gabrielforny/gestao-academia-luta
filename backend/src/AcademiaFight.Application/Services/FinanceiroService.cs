@@ -37,6 +37,10 @@ public class FinanceiroService : IFinanceiroService
             .Where(p => p.Status == StatusPagamento.Pendente && p.DataVencimento >= inicioMes && p.DataVencimento <= fimMes)
             .Sum(p => p.Valor);
 
+        var previstoMes = pagamentos
+            .Where(p => p.Status == StatusPagamento.Previsto && p.DataVencimento >= inicioMes && p.DataVencimento <= fimMes)
+            .Sum(p => p.Valor);
+
         var atrasados = pagamentos
             .Where(p => (p.Status == StatusPagamento.Pendente || p.Status == StatusPagamento.Atrasado)
                         && p.DataVencimento < hoje)
@@ -72,6 +76,7 @@ public class FinanceiroService : IFinanceiroService
         {
             TotalRecebidoMes = recebidoMes,
             TotalPendenteMes = pendenteMes,
+            TotalPrevistoMes = previstoMes,
             TotalAtrasado = totalAtrasado,
             TotalAlunos = totalAlunos,
             AlunosInadimplentes = inadimplentesIds.Count,
@@ -147,6 +152,7 @@ public class FinanceiroService : IFinanceiroService
         if (pagamento is null) return BaseResponse<PagamentoDto>.Falha("Pagamento não encontrado.");
 
         pagamento.Status = (StatusPagamento)dto.Status;
+        if (dto.Valor.HasValue && dto.Valor.Value > 0) pagamento.Valor = dto.Valor.Value;
         pagamento.DataPagamento = ParseDate(dto.DataPagamento);
         pagamento.FormaPagamento = dto.FormaPagamento;
         pagamento.Observacoes = dto.Observacoes;
@@ -181,17 +187,25 @@ public class FinanceiroService : IFinanceiroService
 
         var alunoIds = alunos.Select(a => a.Id).ToList();
 
-        var jaExistem = await _db.Pagamentos
+        var diasNoMes = DateTime.DaysInMonth(hoje.Year, hoje.Month);
+        var gerados = 0;
+
+        // Pagamentos já existentes para o mês (Pendente, Pago, Atrasado, Previsto)
+        var existentes = await _db.Pagamentos
             .Where(p => alunoIds.Contains(p.AlunoId)
                      && p.Tipo == TipoPagamento.Mensalidade
                      && p.DataVencimento >= inicioMes
                      && p.DataVencimento <= fimMes)
-            .Select(p => p.AlunoId)
             .ToListAsync(ct);
 
-        var jaExistemSet = jaExistem.ToHashSet();
-        var diasNoMes = DateTime.DaysInMonth(hoje.Year, hoje.Month);
-        var gerados = 0;
+        // Converte Previsto → Pendente/Atrasado quando o mês chegou
+        foreach (var pag in existentes.Where(p => p.Status == StatusPagamento.Previsto))
+        {
+            pag.Status = pag.DataVencimento < hoje ? StatusPagamento.Atrasado : StatusPagamento.Pendente;
+            gerados++;
+        }
+
+        var jaExistemSet = existentes.Select(p => p.AlunoId).ToHashSet();
 
         foreach (var aluno in alunos)
         {

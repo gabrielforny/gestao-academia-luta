@@ -130,36 +130,34 @@ class _AdminFaixasScreenState extends State<AdminFaixasScreen> {
           : null,
       body: Column(
         children: [
-          if (_modalidades.length > 1)
+          if (_modalidades.isNotEmpty)
             Container(
               color: kSurface,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: _modalidades.map((m) {
-                    final id = m['id']?.toString();
-                    final selected = id == _modalidadeId;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
-                        label: Text(m['nome']?.toString() ?? ''),
-                        selected: selected,
-                        onSelected: (_) {
-                          setState(() { _modalidadeId = id; });
-                          _loadFaixas();
-                        },
-                        selectedColor: kPrimary.withOpacity(0.18),
-                        labelStyle: TextStyle(
-                          color: selected ? kPrimary : kText2,
-                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                        ),
-                        backgroundColor: kSurface,
-                        side: BorderSide(color: selected ? kPrimary : kBorder),
-                      ),
-                    );
-                  }).toList(),
+              child: DropdownButtonFormField<String>(
+                value: _modalidadeId,
+                dropdownColor: kSurface,
+                style: TextStyle(color: kText1, fontSize: 14),
+                iconEnabledColor: kText2,
+                decoration: InputDecoration(
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  filled: true,
+                  fillColor: kBg,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kBorder)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kBorder)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kPrimary, width: 1.5)),
+                  prefixIcon: Icon(Icons.sports_martial_arts_rounded, color: kPrimary, size: 18),
                 ),
+                items: _modalidades.map((m) => DropdownMenuItem<String>(
+                  value: m['id']?.toString(),
+                  child: Text(m['nome']?.toString() ?? '', style: TextStyle(color: kText1)),
+                )).toList(),
+                onChanged: (id) {
+                  if (id == null) return;
+                  setState(() { _modalidadeId = id; });
+                  _loadFaixas();
+                },
               ),
             ),
           Expanded(

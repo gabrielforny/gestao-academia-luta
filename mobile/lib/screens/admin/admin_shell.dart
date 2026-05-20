@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants.dart';
+import '../../core/tab_refresh.dart';
 
 class AdminShell extends StatelessWidget {
   const AdminShell({super.key, required this.shell});
@@ -22,7 +23,10 @@ class AdminShell extends StatelessWidget {
         backgroundColor: kSurface,
         indicatorColor: kPrimary.withOpacity(0.2),
         selectedIndex: shell.currentIndex,
-        onDestinationSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
+        onDestinationSelected: (i) {
+          adminTabNotifier.value = i;
+          shell.goBranch(i, initialLocation: i == shell.currentIndex);
+        },
         destinations: _tabs
             .map((t) => NavigationDestination(
                   icon: Icon(t.icon, color: kText2),

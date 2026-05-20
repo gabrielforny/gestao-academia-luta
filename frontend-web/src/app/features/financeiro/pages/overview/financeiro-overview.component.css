@@ -94,6 +94,7 @@
 .card-amarelo { border-left-color: #f59e0b; }
 .card-vermelho { border-left-color: #ef4444; }
 .card-neutro  { border-left-color: #6366f1; }
+.card-previsto { border-left-color: #a78bfa; }
 
 .resumo-label {
   font-size: 0.75rem;
@@ -215,6 +216,7 @@
 .badge-pendente { background: rgba(245, 158, 11, 0.12); color: #d97706; }
 .badge-atrasado { background: rgba(239, 68, 68, 0.12); color: #dc2626; }
 .badge-cancelado { background: rgba(107, 114, 128, 0.12); color: #6b7280; }
+.badge-previsto  { background: rgba(99, 102, 241, 0.12); color: #6366f1; }
 
 /* Ações */
 .acoes-col { display: flex; gap: 6px; align-items: center; }

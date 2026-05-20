@@ -49,6 +49,7 @@ export class AlunoFormComponent implements OnInit, OnDestroy {
   readonly faixaInicialId = signal('');
   readonly planoSelecionadoId = signal('');
   readonly diaVencimento = signal<number | null>(null);
+  readonly dataNascimentoSignal = signal('');
 
   // Graduação no modo edição
   readonly modalidadeGradId = signal('');
@@ -70,10 +71,11 @@ export class AlunoFormComponent implements OnInit, OnDestroy {
     ativo: [true],
   });
 
-  readonly menorDeIdade = computed(() => this.calcularMenorDeIdade(this.form.get('dataNascimento')?.value ?? ''));
+  readonly menorDeIdade = computed(() => this.calcularMenorDeIdade(this.dataNascimentoSignal()));
 
   ngOnInit(): void {
     this.form.get('dataNascimento')!.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(val => {
+      this.dataNascimentoSignal.set(val ?? '');
       this.atualizarValidadoresResponsavel(this.calcularMenorDeIdade(val ?? ''));
     });
 
@@ -93,6 +95,7 @@ export class AlunoFormComponent implements OnInit, OnDestroy {
               contatoEmergenciaTelefone: d.contatoEmergenciaTelefone ?? '',
               tipoPlano: (d as any).tipoPlano ?? '', ativo: d.ativo,
             });
+            this.dataNascimentoSignal.set(d.dataNascimento ?? '');
             this.planoSelecionadoId.set((d as any).planoId ?? '');
             this.diaVencimento.set((d as any).diaVencimento ?? null);
           }
@@ -112,6 +115,15 @@ export class AlunoFormComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
+
+  onTurmaChange(turmaId: string): void {
+    this.turmaInicialId.set(turmaId);
+    if (!turmaId) return;
+    const turma = this.turmas().find(t => t.id === turmaId);
+    if (turma?.modalidadeId) {
+      this.onModalidadeChange(turma.modalidadeId);
+    }
+  }
 
   onModalidadeChange(modalidadeId: string): void {
     this.modalidadeInicialId.set(modalidadeId);

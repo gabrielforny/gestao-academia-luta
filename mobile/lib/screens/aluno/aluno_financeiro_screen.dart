@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../../core/constants.dart';
+import '../../core/tab_refresh.dart';
 import '../../core/widgets.dart';
 
 class AlunoFinanceiroScreen extends StatefulWidget {
@@ -22,7 +23,18 @@ class _AlunoFinanceiroScreenState extends State<AlunoFinanceiroScreen> {
   @override
   void initState() {
     super.initState();
+    alunoTabNotifier.addListener(_onTabChanged);
     _load();
+  }
+
+  @override
+  void dispose() {
+    alunoTabNotifier.removeListener(_onTabChanged);
+    super.dispose();
+  }
+
+  void _onTabChanged() {
+    if (alunoTabNotifier.value == 3) _load();
   }
 
   Future<void> _load() async {

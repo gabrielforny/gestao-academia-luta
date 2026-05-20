@@ -33,6 +33,7 @@ public class CreatePagamentoDto
 public class UpdatePagamentoDto
 {
     public int Status { get; set; }
+    public decimal? Valor { get; set; }
     public string? DataPagamento { get; set; }
     public string? FormaPagamento { get; set; }
     public string? Observacoes { get; set; }
@@ -43,6 +44,7 @@ public class ResumoFinanceiroDto
     public decimal TotalRecebidoMes { get; set; }
     public decimal TotalPendenteMes { get; set; }
     public decimal TotalAtrasado { get; set; }
+    public decimal TotalPrevistoMes { get; set; }
     public int TotalAlunos { get; set; }
     public int AlunosInadimplentes { get; set; }
     public int AlunosEmDia { get; set; }

@@ -176,6 +176,7 @@ public class GraduacaoService : IGraduacaoService
         ProfessorId = g.ProfessorId,
         NomeProfessor = g.Professor?.Nome ?? string.Empty,
         Observacoes = g.Observacoes,
-        CertificadoUrl = g.CertificadoUrl
+        CertificadoUrl = g.CertificadoUrl,
+        FaixaOrdem = g.Faixa?.Ordem ?? 0,
     };
 }

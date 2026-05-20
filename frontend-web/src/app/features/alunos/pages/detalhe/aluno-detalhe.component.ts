@@ -86,7 +86,7 @@ export class AlunoDetalheComponent implements OnInit {
     for (const g of this.graduacoes()) {
       if (!g.aprovado) continue;
       const existing = map.get(g.modalidadeId);
-      if (!existing || g.dataExame > existing.dataExame) {
+      if (!existing || g.faixaOrdem > existing.faixaOrdem) {
         map.set(g.modalidadeId, g);
       }
     }

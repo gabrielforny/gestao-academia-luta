@@ -16,6 +16,7 @@ public class GraduacaoDto
     public string NomeProfessor { get; set; } = string.Empty;
     public string? Observacoes { get; set; }
     public string? CertificadoUrl { get; set; }
+    public int FaixaOrdem { get; set; }
 }
 
 public class RegistrarGraduacaoRequest

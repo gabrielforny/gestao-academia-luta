@@ -13,6 +13,7 @@ export interface GraduacaoDto {
   nomeProfessor: string;
   observacoes?: string;
   certificadoUrl?: string;
+  faixaOrdem: number;
 }
 
 export interface FaixaDto {

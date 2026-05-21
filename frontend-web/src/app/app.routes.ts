@@ -8,21 +8,21 @@ export const routes: Routes = [
     path: '',
     loadComponent: () =>
       import('./features/landing/landing.component').then((m) => m.LandingComponent),
-    title: 'Academia Fight — Gestão inteligente para artes marciais',
+    title: 'Tatakai — Gestão inteligente para artes marciais',
   },
   {
     path: 'login',
     loadComponent: () =>
       import('./features/auth/login/login.component').then((m) => m.LoginComponent),
     canActivate: [guestGuard],
-    title: 'Entrar — Academia Fight',
+    title: 'Entrar — Tatakai',
   },
   {
     path: 'cadastro',
     loadComponent: () =>
       import('./features/auth/cadastro/cadastro.component').then((m) => m.CadastroComponent),
     canActivate: [guestGuard],
-    title: 'Criar conta — Academia Fight',
+    title: 'Criar conta — Tatakai',
   },
   {
     path: 'forgot-password',
@@ -30,7 +30,7 @@ export const routes: Routes = [
       import('./features/auth/forgot-password/forgot-password.component').then(
         (m) => m.ForgotPasswordComponent
       ),
-    title: 'Recuperar senha — Academia Fight',
+    title: 'Recuperar senha — Tatakai',
   },
   {
     path: 'reset-password',
@@ -38,7 +38,7 @@ export const routes: Routes = [
       import('./features/auth/reset-password/reset-password.component').then(
         (m) => m.ResetPasswordComponent
       ),
-    title: 'Nova senha — Academia Fight',
+    title: 'Nova senha — Tatakai',
   },
   {
     path: 'app',
@@ -49,7 +49,7 @@ export const routes: Routes = [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       {
         path: 'dashboard',
-        title: 'Dashboard — Academia Fight',
+        title: 'Dashboard — Tatakai',
         loadComponent: () =>
           import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
       },

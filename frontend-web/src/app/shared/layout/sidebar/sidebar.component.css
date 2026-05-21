@@ -7,7 +7,7 @@
   --fg-2: #c9c8c2;
   --fg-3: #8a8985;
   --line: #232323;
-  --accent: #ff4d2e;
+  --accent: #6c3fff;
 }
 
 :host-context(html:not(.dark)) {
@@ -52,9 +52,16 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #0a0a0a;
+  color: #ffffff;
   font-size: 13px;
   font-weight: 800;
+  flex-shrink: 0;
+}
+.sidebar-brand-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 6px;
   flex-shrink: 0;
 }
 

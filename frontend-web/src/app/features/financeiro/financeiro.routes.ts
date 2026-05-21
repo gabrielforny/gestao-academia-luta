@@ -7,6 +7,6 @@ export const financeiroRoutes: Routes = [
       import('./pages/overview/financeiro-overview.component').then(
         (m) => m.FinanceiroOverviewComponent
       ),
-    title: 'Financeiro — Academia Fight',
+    title: 'Financeiro — Tatakai',
   },
 ];

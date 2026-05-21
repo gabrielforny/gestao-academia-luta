@@ -5,6 +5,6 @@ export const relatoriosRoutes: Routes = [
     path: '',
     loadComponent: () =>
       import('./pages/geral/relatorios.component').then((m) => m.RelatoriosComponent),
-    title: 'Relatórios — Academia Fight',
+    title: 'Relatórios — Tatakai',
   },
 ];

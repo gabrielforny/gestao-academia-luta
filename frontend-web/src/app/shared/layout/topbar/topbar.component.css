@@ -5,7 +5,7 @@
   --fg-2: #c9c8c2;
   --fg-3: #8a8985;
   --line: #232323;
-  --accent: #ff4d2e;
+  --accent: #6c3fff;
 }
 
 :host-context(html:not(.dark)) {
@@ -366,4 +366,4 @@
 
 .dropdown-link:hover { background: rgba(128, 128, 128, 0.1); }
 .dropdown-link.danger { color: #ff6b6b; }
-.dropdown-link.danger:hover { background: rgba(255, 77, 46, 0.1); }
+.dropdown-link.danger:hover { background: rgba(108, 63, 255, 0.1); }

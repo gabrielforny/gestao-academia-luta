@@ -4,8 +4,7 @@
   <nav class="nav">
     <div class="nav-inner">
       <a routerLink="/" class="brand">
-        <span class="brand-mark">T</span>
-        Tatame
+        <img src="images/logo_sistema.png" alt="Tatakai" class="brand-logo">
       </a>
       <div class="nav-links">
         <a href="#problema">Problema</a>
@@ -51,8 +50,8 @@
           <div class="dash-body">
             <aside class="dash-sidebar">
               <div class="dash-side-brand">
-                <span class="brand-mark" style="width:18px;height:18px;font-size:11px">T</span>
-                Tatame
+                <img src="images/logo_app.png" alt="Tatakai" style="width:18px;height:18px;object-fit:contain;border-radius:4px">
+                Tatakai
               </div>
               <div class="dash-side-item active">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M3 12l9-9 9 9M5 10v10h14V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
@@ -208,7 +207,7 @@
             enquanto você cuida do tatame.
           </h2>
           <p class="lead" style="margin-top: 28px" data-reveal>
-            Tatame é a única plataforma feita exclusivamente pra academias de luta. Cobra sozinho, engaja seus alunos, e mostra todo dia onde você pode crescer.
+            Tatakai é a única plataforma feita exclusivamente pra academias de luta. Cobra sozinho, engaja seus alunos, e mostra todo dia onde você pode crescer.
           </p>
           <div class="transform-list" data-reveal>
             @for (row of transforms; track $index) {
@@ -471,10 +470,54 @@
     </div>
   </section>
 
+  <!-- MODALIDADES -->
+  <section class="section modalities-section">
+    <div class="container">
+      <div class="section-num">05 — Modalidades</div>
+      <h2 class="h-1" data-reveal style="max-width: 22ch">
+        Uma plataforma.<br>
+        <em style="font-style:normal;color:var(--accent)">Todas as artes.</em>
+      </h2>
+      <p class="lead" data-reveal style="max-width: 52ch; margin-top: 16px; margin-bottom: 48px">
+        Do tatame ao ringue, o Tatakai foi construído para gerenciar qualquer arte marcial — com graduações, turmas e métricas específicas para cada modalidade.
+      </p>
+      <div class="modalities-grid" data-reveal>
+        <div class="modality-card">
+          <img src="images/jiu-jitsu.png" alt="Jiu-Jitsu" class="modality-img">
+          <div class="modality-label">Jiu-Jitsu</div>
+        </div>
+        <div class="modality-card">
+          <img src="images/karate.png" alt="Karatê" class="modality-img">
+          <div class="modality-label">Karatê</div>
+        </div>
+        <div class="modality-card">
+          <img src="images/muay_thai.png" alt="Muay Thai" class="modality-img">
+          <div class="modality-label">Muay Thai</div>
+        </div>
+        <div class="modality-card">
+          <img src="images/judo.png" alt="Judô" class="modality-img">
+          <div class="modality-label">Judô</div>
+        </div>
+      </div>
+      <div class="modalities-more" data-reveal>
+        <span class="modalities-more-label">e muito mais —</span>
+        <span class="modality-tag">MMA</span>
+        <span class="modality-tag">Boxing</span>
+        <span class="modality-tag">Taekwondo</span>
+        <span class="modality-tag">Luta Livre</span>
+        <span class="modality-tag">Capoeira</span>
+        <span class="modality-tag">Kung Fu</span>
+        <span class="modality-tag">Wrestling</span>
+        <span class="modality-tag">Kickboxing</span>
+        <span class="modality-tag-all">qualquer arte marcial</span>
+      </div>
+    </div>
+  </section>
+
   <!-- DIFFERENTIALS -->
   <section class="section" style="background: var(--bg-2)">
     <div class="container">
-      <div class="section-num">05 — Por que Tatame</div>
+      <div class="section-num">06 — Por que Tatakai</div>
       <h2 class="h-1" data-reveal style="max-width: 16ch">
         Não é mais um sistema de gestão.<br>
         É uma <em style="font-style:normal;color:var(--accent)">arma de crescimento</em>.
@@ -494,7 +537,7 @@
   <!-- HOW IT WORKS -->
   <section id="como-funciona" class="section">
     <div class="container">
-      <div class="section-num">06 — Como funciona</div>
+      <div class="section-num">07 — Como funciona</div>
       <h2 class="h-1" data-reveal style="max-width: 18ch">
         Você está rodando<br>em <em style="font-style:normal;color:var(--accent)">menos de 24 horas</em>.
       </h2>
@@ -516,7 +559,7 @@
   <!-- BENEFITS + ROI -->
   <section class="section">
     <div class="container">
-      <div class="section-num">07 — Resultado</div>
+      <div class="section-num">08 — Resultado</div>
       <h2 class="h-1" data-reveal style="max-width: 16ch">
         Em <em style="font-style:normal;color:var(--accent)">90 dias</em> sua academia<br>não vai parecer a mesma.
       </h2>
@@ -564,7 +607,7 @@
               <span>{{ fmtBrl(roiResult().growth) }}</span>
             </div>
             <div class="roi-line" style="border-top: 1px solid var(--line); color: var(--accent)">
-              <span>Investimento Tatame</span>
+              <span>Investimento Tatakai</span>
               <span style="font-family:var(--mono)">R$ 149</span>
             </div>
           </div>
@@ -576,7 +619,7 @@
   <!-- PRICING -->
   <section id="precos" class="section">
     <div class="container">
-      <div class="section-num">08 — Preços</div>
+      <div class="section-num">09 — Preços</div>
       <div style="text-align: center; max-width: 720px; margin: 0 auto">
         <h2 class="h-1" data-reveal>
           Um plano. <em style="font-style:normal;color:var(--accent)">Tudo dentro.</em>
@@ -590,7 +633,7 @@
         <div class="pricing-head">
           <div>
             <div class="eyebrow">Plano único · Tudo incluso</div>
-            <div class="h-2" style="margin-top: 8px">Tatame Pro</div>
+            <div class="h-2" style="margin-top: 8px">Tatakai Pro</div>
           </div>
           <div class="toggle-period">
             <button [class.active]="!pricingAnual()" (click)="pricingAnual.set(false)">Mensal</button>
@@ -650,10 +693,9 @@
   <!-- FOOTER -->
   <footer class="footer">
     <div class="container footer-inner">
-      <div>© 2026 Tatame. Feito por quem treina, pra quem treina.</div>
+      <div>© 2026 Tatakai. Feito por quem treina, pra quem treina.</div>
       <a routerLink="/" class="brand" style="justify-content: center">
-        <span class="brand-mark">T</span>
-        Tatame
+        <img src="images/logo_sistema.png" alt="Tatakai" class="brand-logo">
       </a>
       <div class="footer-links">
         <a href="#">Termos</a>

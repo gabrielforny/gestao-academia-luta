@@ -1,15 +1,15 @@
 :host {
   display: block;
-  --bg: #0a0a0a;
-  --bg-2: #111111;
-  --bg-3: #161616;
-  --fg: #fafaf7;
-  --fg-2: #c9c8c2;
-  --fg-3: #8a8985;
-  --line: #232323;
-  --line-2: #2e2e2e;
-  --accent: #ff4d2e;
-  --accent-2: #ff6a4d;
+  --bg: #f8f7ff;
+  --bg-2: #f0eefb;
+  --bg-3: #e8e4f8;
+  --fg: #0d0a1e;
+  --fg-2: #3b3659;
+  --fg-3: #7a759e;
+  --line: #ddd9f2;
+  --line-2: #ccc7ea;
+  --accent: #6c3fff;
+  --accent-2: #8b67ff;
   --display: 'Geist', 'Inter', system-ui, -apple-system, sans-serif;
   --mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
   font-family: var(--display);
@@ -28,7 +28,9 @@
   display: none;
   width: 44%;
   flex-shrink: 0;
-  background: var(--bg-2);
+  background:
+    linear-gradient(to bottom, rgba(8,8,18,0.72) 0%, rgba(8,8,18,0.55) 40%, rgba(8,8,18,0.78) 100%),
+    url('/images/jiu-jitsu.png') center / cover no-repeat;
   border-right: 1px solid var(--line);
   flex-direction: column;
   padding: 52px 48px;
@@ -43,8 +45,15 @@
   font-weight: 700;
   font-size: 18px;
   letter-spacing: -0.02em;
-  color: var(--fg);
+  color: #ffffff;
   text-decoration: none;
+}
+.auth-brand-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 6px;
+  flex-shrink: 0;
 }
 .brand-mark {
   width: 22px;
@@ -54,7 +63,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #0a0a0a;
+  color: #ffffff;
   font-size: 13px;
   font-weight: 800;
 }
@@ -66,7 +75,7 @@
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--fg-3);
+  color: rgba(255,255,255,0.55);
 }
 
 .auth-headline {
@@ -76,6 +85,7 @@
   letter-spacing: -0.035em;
   line-height: 0.95;
   margin-top: 16px;
+  color: #ffffff;
 }
 .auth-headline em { font-style: normal; color: var(--accent); }
 
@@ -85,24 +95,24 @@
   align-items: center;
   gap: 12px;
   font-size: 15px;
-  color: var(--fg-2);
+  color: rgba(255,255,255,0.75);
 }
 .benefit-check {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: rgba(255, 77, 46, 0.12);
-  border: 1px solid rgba(255, 77, 46, 0.25);
+  background: rgba(108, 63, 255, 0.18);
+  border: 1px solid rgba(108, 63, 255, 0.35);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--accent);
+  color: #8b67ff;
   flex-shrink: 0;
 }
 
-.auth-trust { margin-top: auto; padding-top: 40px; border-top: 1px solid var(--line); }
-.auth-trust-label { font-family: var(--mono); font-size: 11px; color: var(--fg-3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
-.auth-trust-stars { font-size: 14px; color: var(--fg-2); }
+.auth-trust { margin-top: auto; padding-top: 40px; border-top: 1px solid rgba(255,255,255,0.12); }
+.auth-trust-label { font-family: var(--mono); font-size: 11px; color: rgba(255,255,255,0.45); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
+.auth-trust-stars { font-size: 14px; color: rgba(255,255,255,0.65); }
 
 /* Right panel */
 .auth-right {
@@ -135,8 +145,8 @@
 .step-item { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-3); }
 .step-item.active { color: var(--fg); }
 .step-circle { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
-.step-item.active .step-circle { background: var(--accent); color: #0a0a0a; border-color: var(--accent); }
-.step-item.done .step-circle { background: rgba(255,77,46,0.15); border-color: rgba(255,77,46,0.3); color: var(--accent); }
+.step-item.active .step-circle { background: var(--accent); color: #ffffff; border-color: var(--accent); }
+.step-item.done .step-circle { background: rgba(108,63,255,0.15); border-color: rgba(108,63,255,0.3); color: var(--accent); }
 .step-sep { height: 1px; width: 32px; background: var(--line); }
 
 .auth-title {
@@ -232,7 +242,7 @@
   justify-content: center;
   gap: 8px;
   background: var(--accent);
-  color: #0a0a0a;
+  color: #ffffff;
   border: none;
   border-radius: 999px;
   padding: 15px 24px;

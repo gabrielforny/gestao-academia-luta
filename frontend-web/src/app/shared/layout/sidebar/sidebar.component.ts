@@ -31,7 +31,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly destroy$ = new Subject<void>();
 
-  readonly academiaName = signal('Academia Fight');
+  readonly academiaName = signal('');
 
   readonly exactMatch: IsActiveMatchOptions = {
     paths: 'exact', queryParams: 'ignored', fragment: 'ignored', matrixParams: 'ignored',

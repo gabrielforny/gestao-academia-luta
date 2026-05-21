@@ -148,16 +148,20 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  'Tatame',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: kPrimary, fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: -1),
+                Center(
+                  child: Image.asset('assets/logo_app.png', width: 72, height: 72),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 14),
+                const Text(
+                  'TATAKAI',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 4),
+                ),
+                const SizedBox(height: 4),
                 Text(
                   'Acesse sua academia',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: kText2, fontSize: 14),
+                  style: TextStyle(color: kText2, fontSize: 13),
                 ),
                 const SizedBox(height: 40),
                 Text('E-mail ou telefone',

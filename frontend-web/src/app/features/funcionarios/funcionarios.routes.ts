@@ -5,24 +5,24 @@ export const funcionariosRoutes: Routes = [
     path: '',
     loadComponent: () =>
       import('./pages/lista/funcionarios-lista.component').then(m => m.FuncionariosListaComponent),
-    title: 'Funcionários — Academia Fight',
+    title: 'Funcionários — Tatakai',
   },
   {
     path: 'novo',
     loadComponent: () =>
       import('./pages/form/funcionario-form.component').then(m => m.FuncionarioFormComponent),
-    title: 'Novo Funcionário — Academia Fight',
+    title: 'Novo Funcionário — Tatakai',
   },
   {
     path: ':id/editar',
     loadComponent: () =>
       import('./pages/form/funcionario-form.component').then(m => m.FuncionarioFormComponent),
-    title: 'Editar Funcionário — Academia Fight',
+    title: 'Editar Funcionário — Tatakai',
   },
   {
     path: ':id',
     loadComponent: () =>
       import('./pages/detalhe/funcionario-detalhe.component').then(m => m.FuncionarioDetalheComponent),
-    title: 'Funcionário — Academia Fight',
+    title: 'Funcionário — Tatakai',
   },
 ];

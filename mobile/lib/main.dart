@@ -21,6 +21,7 @@ import 'screens/admin/configuracoes_screen.dart';
 import 'screens/admin/faixas_screen.dart';
 import 'screens/admin/relatorio_anual_screen.dart';
 import 'screens/admin/relatorio_presencas_screen.dart';
+import 'screens/admin/aniversariantes_screen.dart';
 import 'screens/professor/prof_presenca_historico_screen.dart';
 import 'screens/admin/modelos_contrato_screen.dart';
 import 'screens/professor/professor_shell.dart';
@@ -36,7 +37,9 @@ import 'screens/aluno/aluno_presencas_screen.dart';
 import 'screens/aluno/aluno_financeiro_screen.dart';
 import 'screens/aluno/aluno_ranking_screen.dart';
 import 'screens/aluno/aluno_graduacoes_screen.dart';
+import 'screens/aluno/aluno_conquistas_screen.dart';
 import 'screens/alterar_senha_screen.dart';
+import 'screens/shared/qr_scan_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,6 +55,7 @@ final _router = GoRouter(
     GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
     GoRoute(path: '/primeiro-acesso', builder: (_, __) => const PrimeiroAcessoScreen()),
     GoRoute(path: '/esqueci-senha', builder: (_, __) => const EsqueciSenhaScreen()),
+    GoRoute(path: '/scan-qr', builder: (_, __) => const QrScanScreen()),
 
     // Admin
     StatefulShellRoute.indexedStack(
@@ -65,6 +69,7 @@ final _router = GoRouter(
               GoRoute(path: 'configuracoes', builder: (_, __) => const AdminConfiguracoesScreen()),
               GoRoute(path: 'faixas', builder: (_, __) => const AdminFaixasScreen()),
               GoRoute(path: 'contratos', builder: (_, __) => const AdminModelosContratoScreen()),
+              GoRoute(path: 'aniversariantes', builder: (_, __) => const AdminAniversariantesScreen()),
             ],
           ),
         ]),
@@ -167,7 +172,13 @@ final _router = GoRouter(
           GoRoute(path: '/aluno/financeiro', builder: (_, __) => const AlunoFinanceiroScreen()),
         ]),
         StatefulShellBranch(routes: [
-          GoRoute(path: '/aluno/ranking', builder: (_, __) => const AlunoRankingScreen()),
+          GoRoute(
+            path: '/aluno/ranking',
+            builder: (_, __) => const AlunoRankingScreen(),
+            routes: [
+              GoRoute(path: 'conquistas', builder: (_, __) => const AlunoConquistasScreen()),
+            ],
+          ),
         ]),
       ],
     ),

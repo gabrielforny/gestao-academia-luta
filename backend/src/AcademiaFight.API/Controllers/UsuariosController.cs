@@ -43,4 +43,19 @@ public class UsuariosController : ControllerBase
         var resultado = await _usuarioService.AtualizarMeuPerfilAsync(usuarioId, request, ct);
         return Ok(resultado);
     }
+
+    [HttpPut("me/fcm-token")]
+    public async Task<IActionResult> RegistrarFcmToken([FromBody] FcmTokenRequest request, CancellationToken ct)
+    {
+        var sub = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
+                  ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(sub, out var usuarioId)) return Unauthorized();
+        var resultado = await _usuarioService.RegistrarFcmTokenAsync(usuarioId, request.Token, ct);
+        return Ok(resultado);
+    }
+}
+
+public class FcmTokenRequest
+{
+    public string Token { get; set; } = string.Empty;
 }

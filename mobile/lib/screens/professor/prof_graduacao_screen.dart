@@ -13,6 +13,7 @@ class _ProfGraduacaoScreenState extends State<ProfGraduacaoScreen> {
   List<Map<String, dynamic>> _turmas = [];
   List<Map<String, dynamic>> _alunos = [];
   List<Map<String, dynamic>> _faixas = [];
+  List<String> _aptosIds = [];
   Map<String, dynamic>? _turmaSel;
   Map<String, dynamic>? _alunoSel;
   Map<String, dynamic>? _faixaSel;
@@ -21,6 +22,7 @@ class _ProfGraduacaoScreenState extends State<ProfGraduacaoScreen> {
   bool _loading = true;
   bool _saving = false;
   bool _sucesso = false;
+  String? _profId;
 
   @override
   void initState() {
@@ -38,6 +40,7 @@ class _ProfGraduacaoScreenState extends State<ProfGraduacaoScreen> {
     try {
       final me = await dio.get('/api/usuarios/me');
       final uid = (me.data['dados'] as Map<String, dynamic>?)?['id'] ?? '';
+      _profId = uid.toString();
       final res = await dio.get('/api/turmas', queryParameters: {'professorId': uid});
       final dados = res.data['dados'];
       final list = dados is List ? dados : (dados is Map ? dados['items'] as List? ?? [] : []);
@@ -48,11 +51,27 @@ class _ProfGraduacaoScreenState extends State<ProfGraduacaoScreen> {
   }
 
   Future<void> _selecionarTurma(Map<String, dynamic> t) async {
-    setState(() { _turmaSel = t; _loading = true; _step = 1; });
+    setState(() { _turmaSel = t; _loading = true; _step = 1; _aptosIds = []; });
     try {
-      final res = await dio.get('/api/turmas/${t['id']}');
-      final dados = res.data['dados'] as Map<String, dynamic>? ?? {};
+      final modalidadeId = t['modalidadeId'] as String? ?? '';
+      final turmaRes = await dio.get('/api/turmas/${t['id']}');
+      final dados = turmaRes.data['dados'] as Map<String, dynamic>? ?? {};
       final alunos = (dados['alunos'] as List? ?? []).cast<Map<String, dynamic>>();
+
+      // Carrega aptos para a primeira faixa da modalidade
+      if (modalidadeId.isNotEmpty) {
+        try {
+          final faixasRes = await dio.get('/api/faixas', queryParameters: {'modalidadeId': modalidadeId});
+          final faixasData = faixasRes.data['dados'];
+          final faixasList = faixasData is List ? faixasData.cast<Map<String, dynamic>>() : <Map<String, dynamic>>[];
+          if (faixasList.isNotEmpty) {
+            final aptosRes = await dio.get('/api/graduacoes/aptos', queryParameters: {'faixaId': faixasList.first['id']});
+            final aptosData = aptosRes.data['dados'] as List? ?? [];
+            _aptosIds = aptosData.cast<Map<String, dynamic>>().map((a) => (a['id'] ?? a['alunoId'] ?? '').toString()).toList();
+          }
+        } catch (_) {}
+      }
+
       if (mounted) setState(() => _alunos = alunos);
     } catch (_) {} finally {
       if (mounted) setState(() => _loading = false);
@@ -76,10 +95,15 @@ class _ProfGraduacaoScreenState extends State<ProfGraduacaoScreen> {
     if (_faixaSel == null) return;
     setState(() => _saving = true);
     try {
+      final hoje = DateTime.now();
+      final dataExame = '${hoje.year}-${hoje.month.toString().padLeft(2, '0')}-${hoje.day.toString().padLeft(2, '0')}';
       await dio.post('/api/graduacoes', data: {
         'alunoId': _alunoSel!['id'],
         'faixaId': _faixaSel!['id'],
-        'observacao': _obsCtrl.text.trim(),
+        'dataExame': dataExame,
+        'professorId': _profId,
+        'aprovado': true,
+        'observacoes': _obsCtrl.text.trim(),
       });
       if (mounted) {
         final nomeAluno = _alunoSel!['nome'];
@@ -196,25 +220,44 @@ class _ProfGraduacaoScreenState extends State<ProfGraduacaoScreen> {
   }
 
   Widget _stepTurma() => _lista(_turmas, (t) => _selecionarTurma(t), (t) => t['nome']);
-  Widget _stepAluno() => _lista(_alunos, (a) => _selecionarAluno(a), (a) => a['nome']);
+  Widget _stepAluno() => _lista(_alunos, (a) => _selecionarAluno(a), (a) => a['nome'],
+      badge: (a) {
+        final id = a['id'] as String? ?? a['alunoId'] as String? ?? '';
+        return _aptosIds.contains(id);
+      });
 
-  Widget _lista(List<Map<String, dynamic>> items, void Function(Map<String, dynamic>) onTap, String Function(Map<String, dynamic>) title) =>
+  Widget _lista(
+    List<Map<String, dynamic>> items,
+    void Function(Map<String, dynamic>) onTap,
+    String Function(Map<String, dynamic>) title, {
+    bool Function(Map<String, dynamic>)? badge,
+  }) =>
       ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: items.length,
-        itemBuilder: (_, i) => GestureDetector(
-          onTap: () => onTap(items[i]),
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: kSurface, borderRadius: BorderRadius.circular(12), border: Border.all(color: kBorder)),
-            child: Row(children: [
-              Expanded(child: Text(title(items[i]), style: TextStyle(color: kText1, fontSize: 15, fontWeight: FontWeight.w600))),
-              Icon(Icons.chevron_right, color: kText2),
-            ]),
-          ),
-        ),
+        itemBuilder: (_, i) {
+          final isApto = badge != null && badge(items[i]);
+          return GestureDetector(
+            onTap: () => onTap(items[i]),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: kSurface, borderRadius: BorderRadius.circular(12), border: Border.all(color: kBorder)),
+              child: Row(children: [
+                Expanded(child: Text(title(items[i]), style: TextStyle(color: kText1, fontSize: 15, fontWeight: FontWeight.w600))),
+                if (isApto)
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(color: kSuccess.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
+                    child: Text('Apto', style: TextStyle(color: kSuccess, fontSize: 11, fontWeight: FontWeight.w700)),
+                  ),
+                Icon(Icons.chevron_right, color: kText2),
+              ]),
+            ),
+          );
+        },
       );
 
   Widget _stepFaixa() => Column(
@@ -272,7 +315,19 @@ class _ProfGraduacaoScreenState extends State<ProfGraduacaoScreen> {
               ),
               child: _saving
                   ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                  : const Text('Promover', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                  : Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Text('Promover', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                      if (_alunoSel != null && _aptosIds.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Icon(
+                          _aptosIds.contains(_alunoSel!['id'] ?? _alunoSel!['alunoId'])
+                              ? Icons.verified_rounded
+                              : Icons.warning_amber_rounded,
+                          size: 16,
+                          color: Colors.white.withOpacity(0.85),
+                        ),
+                      ],
+                    ]),
             ),
           ),
         ],

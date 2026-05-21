@@ -292,6 +292,7 @@ class _AlunoPerfilScreenState extends State<AlunoPerfilScreen> {
   }
 
   Future<void> _sair() async {
+    try { await dio.post('/api/auth/logout'); } catch (_) {}
     await AuthStorage.clear();
     if (mounted) context.go('/login');
   }

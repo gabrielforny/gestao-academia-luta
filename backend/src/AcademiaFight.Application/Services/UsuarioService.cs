@@ -352,4 +352,15 @@ public class UsuarioService : IUsuarioService
             Perfil = usuario.Perfil.ToString(),
         });
     }
+
+    public async Task<BaseResponse> RegistrarFcmTokenAsync(Guid usuarioId, string token, CancellationToken ct = default)
+    {
+        var usuario = await _db.Usuarios.FindAsync([usuarioId], ct);
+        if (usuario is null)
+            return BaseResponse.Falha("Usuário não encontrado.");
+
+        usuario.FcmToken = string.IsNullOrWhiteSpace(token) ? null : token.Trim();
+        await _db.SaveChangesAsync(ct);
+        return BaseResponse.Ok("Token FCM registrado.");
+    }
 }

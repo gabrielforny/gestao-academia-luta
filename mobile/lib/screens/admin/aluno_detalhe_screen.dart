@@ -37,19 +37,19 @@ class _AdminAlunoDetalheScreenState extends State<AdminAlunoDetalheScreen> {
       final meBody = results[1].data as Map<String, dynamic>;
       final gradBody = results[2].data as Map<String, dynamic>;
 
-      // Agrupa graduações aprovadas por modalidade, mantendo a mais recente (maior data)
+      // Agrupa graduações por modalidade, mantendo a de maior ordem (hierarquia da faixa)
       final graduacoes = (gradBody['dados'] as List? ?? []).cast<Map<String, dynamic>>();
       final Map<String, Map<String, dynamic>> faixasMod = {};
       for (final g in graduacoes) {
-        if (g['aprovado'] != true) continue;
         final modNome = g['nomeModalidade']?.toString() ?? 'Sem modalidade';
-        final dataExame = g['dataExame']?.toString() ?? '';
+        final faixaOrdem = (g['faixaOrdem'] as num?)?.toInt() ?? 0;
         final existing = faixasMod[modNome];
-        if (existing == null || dataExame.compareTo(existing['_dataExame'] as String) > 0) {
+        final existingOrdem = (existing?['_faixaOrdem'] as int?) ?? -1;
+        if (existing == null || faixaOrdem > existingOrdem) {
           faixasMod[modNome] = {
             'nome': g['nomeFaixa'] ?? '',
             'cor': g['corFaixa'] ?? '#FFFFFF',
-            '_dataExame': dataExame,
+            '_faixaOrdem': faixaOrdem,
           };
         }
       }

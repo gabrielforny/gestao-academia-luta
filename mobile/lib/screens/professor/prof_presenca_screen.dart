@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/api_client.dart';
 import '../../core/constants.dart';
 
@@ -144,7 +145,12 @@ class _ProfPresencaScreenState extends State<ProfPresencaScreen> {
                   ),
                   const SizedBox(width: 8),
                 ],
-                Text('Registrar Presença', style: TextStyle(color: kText1, fontSize: 22, fontWeight: FontWeight.w800)),
+                Expanded(child: Text('Registrar Presença', style: TextStyle(color: kText1, fontSize: 22, fontWeight: FontWeight.w800))),
+                IconButton(
+                  onPressed: () => context.push('/scan-qr'),
+                  icon: Icon(Icons.qr_code_scanner_rounded, color: kPrimary, size: 26),
+                  tooltip: 'Escanear QR Code',
+                ),
               ]),
             ),
             Expanded(

@@ -24,11 +24,17 @@ public class TurmaService : ITurmaService
         _logger = logger;
     }
 
-    public async Task<BaseResponse<IEnumerable<TurmaDto>>> ListarAsync(CancellationToken ct = default)
+    public async Task<BaseResponse<IEnumerable<TurmaDto>>> ListarAsync(Guid? professorId = null, CancellationToken ct = default)
     {
-        var turmas = await _db.Turmas
+        var query = _db.Turmas
             .Include(t => t.Modalidade)
             .Include(t => t.Professor)
+            .AsQueryable();
+
+        if (professorId.HasValue)
+            query = query.Where(t => t.ProfessorId == professorId.Value);
+
+        var turmas = await query
             .OrderBy(t => t.Nome)
             .Select(t => new TurmaDto
             {
@@ -47,6 +53,7 @@ public class TurmaService : ITurmaService
 
         return BaseResponse<IEnumerable<TurmaDto>>.Ok(turmas);
     }
+
 
     public async Task<BaseResponse<TurmaDto>> ObterPorIdAsync(Guid id, CancellationToken ct = default)
     {

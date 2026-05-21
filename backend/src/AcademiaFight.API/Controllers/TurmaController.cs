@@ -18,9 +18,9 @@ public class TurmaController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> Listar(CancellationToken ct)
+    public async Task<IActionResult> Listar([FromQuery] Guid? professorId, CancellationToken ct)
     {
-        var resultado = await _turmaService.ListarAsync(ct);
+        var resultado = await _turmaService.ListarAsync(professorId, ct);
         return Ok(resultado);
     }
 

@@ -6,7 +6,7 @@ namespace AcademiaFight.Application.Interfaces;
 
 public interface ITurmaService
 {
-    Task<BaseResponse<IEnumerable<TurmaDto>>> ListarAsync(CancellationToken ct = default);
+    Task<BaseResponse<IEnumerable<TurmaDto>>> ListarAsync(Guid? professorId = null, CancellationToken ct = default);
     Task<BaseResponse<TurmaDto>> ObterPorIdAsync(Guid id, CancellationToken ct = default);
     Task<BaseResponse<TurmaDetalheDto>> GetDetalheAsync(Guid turmaId, CancellationToken ct = default);
     Task<BaseResponse<TurmaDto>> CriarAsync(CreateTurmaRequest request, CancellationToken ct = default);

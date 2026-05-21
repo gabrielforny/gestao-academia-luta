@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_storage.dart';
 import '../../core/constants.dart';
@@ -88,7 +89,11 @@ class _AlunoRankingScreenState extends State<AlunoRankingScreen> {
                       ],
                     ),
                   ),
-                  Icon(Icons.emoji_events_rounded, color: const Color(0xFFFFD700), size: 32),
+                  IconButton(
+                    onPressed: () => context.push('/aluno/ranking/conquistas'),
+                    icon: Icon(Icons.military_tech_rounded, color: const Color(0xFFFFD700), size: 32),
+                    tooltip: 'Minhas conquistas',
+                  ),
                 ],
               ),
             ),

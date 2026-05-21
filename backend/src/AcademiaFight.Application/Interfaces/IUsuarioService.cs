@@ -15,4 +15,5 @@ public interface IUsuarioService
     Task<BaseResponse<IEnumerable<AniversarianteDto>>> ListarAniversariantesAsync(int mes, CancellationToken ct = default);
     Task<BaseResponse<MeuPerfilDto>> ObterMeuPerfilAsync(Guid usuarioId, CancellationToken ct = default);
     Task<BaseResponse<MeuPerfilDto>> AtualizarMeuPerfilAsync(Guid usuarioId, AtualizarMeuPerfilRequest request, CancellationToken ct = default);
+    Task<BaseResponse> RegistrarFcmTokenAsync(Guid usuarioId, string token, CancellationToken ct = default);
 }

@@ -14,6 +14,7 @@ class AdminDashboardScreen extends StatefulWidget {
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Map<String, dynamic>? _dash;
+  List<Map<String, dynamic>> _frequencia = [];
   StoredUser? _user;
   bool _loading = true;
   bool _erro = false;
@@ -29,12 +30,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     try {
       final futures = await Future.wait([
         dio.get('/api/dashboard/resumo'),
+        dio.get('/api/dashboard/frequencia', queryParameters: {'dias': 7}),
         if (user?.nome.isEmpty ?? true) dio.get('/api/usuarios/me') else Future.value(null),
       ]);
       final body = futures[0]!.data as Map<String, dynamic>;
+      final freqBody = futures[1]!.data as Map<String, dynamic>;
 
-      if ((user?.nome.isEmpty ?? true) && futures.length > 1 && futures[1] != null) {
-        final meData = futures[1]!.data as Map<String, dynamic>;
+      if ((user?.nome.isEmpty ?? true) && futures.length > 2 && futures[2] != null) {
+        final meData = futures[2]!.data as Map<String, dynamic>;
         final dados = meData['dados'] as Map<String, dynamic>?;
         if (dados != null && user != null) {
           user = StoredUser(
@@ -59,6 +62,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         setState(() {
           _user = user;
           _dash = body['dados'] as Map<String, dynamic>?;
+          _frequencia = (freqBody['dados'] as List? ?? []).cast<Map<String, dynamic>>();
           _loading = false;
         });
       }
@@ -68,6 +72,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Future<void> _sair() async {
+    try { await dio.post('/api/auth/logout'); } catch (_) {}
     await AuthStorage.clear();
     if (mounted) context.go('/login');
   }
@@ -111,6 +116,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     ]),
                     Row(
                       children: [
+                        IconButton(
+                          onPressed: () => context.push('/admin/dashboard/aniversariantes'),
+                          icon: Icon(Icons.cake_rounded, color: kWarning, size: 22),
+                          tooltip: 'Aniversariantes',
+                        ),
                         IconButton(
                           onPressed: () => context.push('/admin/dashboard/configuracoes'),
                           icon: Icon(Icons.settings_rounded, color: kText2, size: 22),
@@ -162,10 +172,78 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           .toList(),
                     ),
             ),
+            if (!_loading && _frequencia.isNotEmpty)
+              SliverToBoxAdapter(child: _buildFrequenciaChart()),
+            const SliverToBoxAdapter(child: SizedBox(height: 16)),
           ],
         ),
       ),
     ),
+    );
+  }
+
+  Widget _buildFrequenciaChart() {
+    final dias = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+    final maxVal = _frequencia.fold<int>(1, (m, e) {
+      final v = (e['total'] as num?)?.toInt() ?? 0;
+      return v > m ? v : m;
+    });
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kBorder),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Frequência — últimos 7 dias', style: TextStyle(color: kText1, fontSize: 14, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 80,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: _frequencia.asMap().entries.map((entry) {
+              final i = entry.key;
+              final item = entry.value;
+              final val = (item['total'] as num?)?.toInt() ?? 0;
+              final ratio = maxVal > 0 ? val / maxVal : 0.0;
+              final data = (item['data'] as String? ?? '').split('-');
+              final label = data.length == 3 ? '${data[2]}/${data[1]}' : '?';
+              final diaSemana = _frequencia.length == 7 ? dias[i] : '?';
+
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      if (val > 0)
+                        Text('$val', style: TextStyle(color: kText2, fontSize: 9)),
+                      const SizedBox(height: 2),
+                      Flexible(
+                        child: FractionallySizedBox(
+                          heightFactor: ratio.clamp(0.05, 1.0),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: kPrimary.withOpacity(0.75),
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(diaSemana, style: TextStyle(color: kText2, fontSize: 9)),
+                      Text(label, style: TextStyle(color: kText2, fontSize: 8)),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ]),
     );
   }
 }

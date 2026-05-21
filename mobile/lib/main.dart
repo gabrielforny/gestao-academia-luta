@@ -7,6 +7,7 @@ import 'screens/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/primeiro_acesso_screen.dart';
 import 'screens/auth/esqueci_senha_screen.dart';
+import 'screens/auth/cadastro_screen.dart';
 import 'screens/admin/admin_shell.dart';
 import 'screens/admin/dashboard_screen.dart';
 import 'screens/admin/alunos_screen.dart';
@@ -54,6 +55,7 @@ final _router = GoRouter(
     GoRoute(path: '/alterar-senha', builder: (_, __) => const AlterarSenhaScreen()),
     GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
     GoRoute(path: '/primeiro-acesso', builder: (_, __) => const PrimeiroAcessoScreen()),
+    GoRoute(path: '/cadastrar', builder: (_, __) => const CadastroScreen()),
     GoRoute(path: '/esqueci-senha', builder: (_, __) => const EsqueciSenhaScreen()),
     GoRoute(path: '/scan-qr', builder: (_, __) => const QrScanScreen()),
 

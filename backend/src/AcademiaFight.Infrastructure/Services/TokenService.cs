@@ -35,15 +35,16 @@ public class TokenService : ITokenService
         var chave = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(SecretKey));
         var credenciais = new SigningCredentials(chave, SecurityAlgorithms.HmacSha256);
 
+        var email = usuario.Email ?? string.Empty;
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, usuario.Id.ToString()),
-            new(JwtRegisteredClaimNames.Email, usuario.Email),
+            new(JwtRegisteredClaimNames.Email, email),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new("nome", usuario.Nome),
             new("academia_id", usuario.AcademiaId.ToString()),
             new("perfil", usuario.Perfil.ToString()),
-            new(ClaimTypes.Email, usuario.Email),
+            new(ClaimTypes.Email, email),
             new(ClaimTypes.Role, usuario.Perfil.ToString())
         };
 

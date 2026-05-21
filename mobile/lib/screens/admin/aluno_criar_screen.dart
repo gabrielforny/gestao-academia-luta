@@ -1,7 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_client.dart';
 import '../../core/constants.dart';
+
+class _PhoneMaskFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue old, TextEditingValue next) {
+    final digits = next.text.replaceAll(RegExp(r'\D'), '');
+    final d = digits.length > 11 ? digits.substring(0, 11) : digits;
+    final buf = StringBuffer();
+    for (var i = 0; i < d.length; i++) {
+      if (i == 0) buf.write('(');
+      if (i == 2) buf.write(') ');
+      if (d.length == 11 && i == 7) buf.write('-');
+      if (d.length <= 10 && i == 6) buf.write('-');
+      buf.write(d[i]);
+    }
+    final text = buf.toString();
+    return next.copyWith(text: text, selection: TextSelection.collapsed(offset: text.length));
+  }
+}
+
+class _DateMaskFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue old, TextEditingValue next) {
+    final digits = next.text.replaceAll(RegExp(r'\D'), '');
+    final d = digits.length > 8 ? digits.substring(0, 8) : digits;
+    final buf = StringBuffer();
+    for (var i = 0; i < d.length; i++) {
+      if (i == 2 || i == 4) buf.write('/');
+      buf.write(d[i]);
+    }
+    final text = buf.toString();
+    return next.copyWith(text: text, selection: TextSelection.collapsed(offset: text.length));
+  }
+}
 
 class AdminAlunoCriarScreen extends StatefulWidget {
   const AdminAlunoCriarScreen({super.key});
@@ -31,6 +65,12 @@ class _AdminAlunoCriarScreenState extends State<AdminAlunoCriarScreen> {
     _carregarPlanos();
   }
 
+  String _toIsoDate(String ddmmaaaa) {
+    final parts = ddmmaaaa.split('/');
+    if (parts.length != 3) return ddmmaaaa;
+    return '${parts[2]}-${parts[1]}-${parts[0]}';
+  }
+
   Future<void> _carregarPlanos() async {
     try {
       final res = await dio.get('/api/planos');
@@ -49,7 +89,7 @@ class _AdminAlunoCriarScreenState extends State<AdminAlunoCriarScreen> {
         'nome': _nome.text.trim(),
         'email': _email.text.trim().isEmpty ? null : _email.text.trim(),
         'telefone': _telefone.text.trim(),
-        if (_nascimento.text.trim().isNotEmpty) 'dataNascimento': _nascimento.text.trim(),
+        if (_nascimento.text.trim().length == 10) 'dataNascimento': _toIsoDate(_nascimento.text.trim()),
         if (_emergenciaNome.text.trim().isNotEmpty) 'contatoEmergenciaNome': _emergenciaNome.text.trim(),
         if (_emergenciaTel.text.trim().isNotEmpty) 'contatoEmergenciaTelefone': _emergenciaTel.text.trim(),
         if (_planoId != null) 'planoId': _planoId,
@@ -93,12 +133,12 @@ class _AdminAlunoCriarScreenState extends State<AdminAlunoCriarScreen> {
             _section('Dados pessoais'),
             _field(_nome, 'Nome completo *', required: true),
             _field(_email, 'E-mail', keyboard: TextInputType.emailAddress),
-            _field(_telefone, 'Telefone', keyboard: TextInputType.phone),
-            _field(_nascimento, 'Data de nascimento (AAAA-MM-DD)'),
+            _field(_telefone, 'Telefone', keyboard: TextInputType.phone, formatters: [_PhoneMaskFormatter()]),
+            _field(_nascimento, 'Data de nascimento (DD/MM/AAAA)', keyboard: TextInputType.number, formatters: [_DateMaskFormatter()]),
             const SizedBox(height: 16),
             _section('Contato de emergência'),
             _field(_emergenciaNome, 'Nome do contato'),
-            _field(_emergenciaTel, 'Telefone do contato', keyboard: TextInputType.phone),
+            _field(_emergenciaTel, 'Telefone do contato', keyboard: TextInputType.phone, formatters: [_PhoneMaskFormatter()]),
             const SizedBox(height: 16),
             _section('Plano financeiro'),
             if (_planos.isNotEmpty) ...[
@@ -162,11 +202,12 @@ class _AdminAlunoCriarScreenState extends State<AdminAlunoCriarScreen> {
         child: Text(label, style: TextStyle(color: kText2, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
       );
 
-  Widget _field(TextEditingController ctrl, String hint, {bool required = false, TextInputType? keyboard}) => Padding(
+  Widget _field(TextEditingController ctrl, String hint, {bool required = false, TextInputType? keyboard, List<TextInputFormatter>? formatters}) => Padding(
         padding: const EdgeInsets.only(bottom: 10),
         child: TextFormField(
           controller: ctrl,
           keyboardType: keyboard,
+          inputFormatters: formatters,
           style: TextStyle(color: kText1),
           validator: required ? (v) => (v == null || v.trim().isEmpty) ? 'Campo obrigatório' : null : null,
           decoration: InputDecoration(

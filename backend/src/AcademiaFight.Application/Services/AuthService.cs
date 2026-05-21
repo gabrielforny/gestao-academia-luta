@@ -184,15 +184,18 @@ public class AuthService : IAuthService
                 return BaseResponse<LoginResponse>.Falha("Access token inválido.");
 
             var academiaIdClaim = principal.FindFirst("academia_id")?.Value;
-            var emailClaim = principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
-                            ?? principal.FindFirst("email")?.Value;
+            var subClaim = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                           ?? principal.FindFirst("sub")?.Value;
 
             if (!Guid.TryParse(academiaIdClaim, out var academiaId))
                 return BaseResponse<LoginResponse>.Falha("Token inválido: academia não identificada.");
 
+            if (!Guid.TryParse(subClaim, out var usuarioId))
+                return BaseResponse<LoginResponse>.Falha("Token inválido: usuário não identificado.");
+
             var usuario = await _db.Usuarios
                 .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(u => u.Email == emailClaim
+                .FirstOrDefaultAsync(u => u.Id == usuarioId
                                           && u.AcademiaId == academiaId
                                           && u.RefreshToken == request.RefreshToken
                                           && u.RefreshTokenExpiry > DateTime.UtcNow

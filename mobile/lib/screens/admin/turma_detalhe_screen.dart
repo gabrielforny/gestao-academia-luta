@@ -18,7 +18,7 @@ class _AdminTurmaDetalheScreenState extends State<AdminTurmaDetalheScreen> with 
   Map<String, dynamic>? _turma;
   List<Map<String, dynamic>> _alunos = [];
   List<Map<String, dynamic>> _filtrados = [];
-  // presença count por alunoId (da aba Alunos)
+  List<Map<String, dynamic>> _horarios = [];
   Map<String, int> _presencaCount = {};
 
   // Aba Presença
@@ -33,7 +33,7 @@ class _AdminTurmaDetalheScreenState extends State<AdminTurmaDetalheScreen> with 
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
+    _tabCtrl = TabController(length: 3, vsync: this);
     _tabCtrl.addListener(() {
       if (_tabCtrl.index == 1 && !_tabCtrl.indexIsChanging) _loadPresencaData();
     });
@@ -79,11 +79,17 @@ class _AdminTurmaDetalheScreenState extends State<AdminTurmaDetalheScreen> with 
         countMap[id] = (ra['presencas'] as num?)?.toInt() ?? 0;
       }
 
+      // Carrega horários
+      final horariosRes = await dio.get('/api/horarios', queryParameters: {'turmaId': widget.turmaId});
+      final horariosData = horariosRes.data['dados'];
+      final horariosList = horariosData is List ? horariosData.cast<Map<String, dynamic>>() : <Map<String, dynamic>>[];
+
       if (mounted) {
         setState(() {
           _turma = dados;
           _alunos = alunosList;
           _presencaCount = countMap;
+          _horarios = horariosList;
           _filtrar();
         });
       }
@@ -243,6 +249,7 @@ class _AdminTurmaDetalheScreenState extends State<AdminTurmaDetalheScreen> with 
           tabs: const [
             Tab(text: 'Alunos'),
             Tab(text: 'Presença'),
+            Tab(text: 'Horários'),
           ],
         ),
       ),
@@ -255,6 +262,7 @@ class _AdminTurmaDetalheScreenState extends State<AdminTurmaDetalheScreen> with 
                   children: [
                     _abaAlunos(),
                     _abaPresenca(),
+                    _abaHorarios(),
                   ],
                 ),
     );
@@ -292,6 +300,19 @@ class _AdminTurmaDetalheScreenState extends State<AdminTurmaDetalheScreen> with 
               Text('Alunos matriculados', style: TextStyle(color: kText2, fontSize: 13, fontWeight: FontWeight.w600)),
               const Spacer(),
               Text('${_filtrados.length}', style: TextStyle(color: kPrimary, fontSize: 13, fontWeight: FontWeight.w700)),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: _abrirMatricula,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(color: kPrimary.withOpacity(0.12), borderRadius: BorderRadius.circular(8)),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.person_add_rounded, color: kPrimary, size: 14),
+                    const SizedBox(width: 4),
+                    Text('Matricular', style: TextStyle(color: kPrimary, fontSize: 12, fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+              ),
             ],
           ),
         ),
@@ -360,33 +381,48 @@ class _AdminTurmaDetalheScreenState extends State<AdminTurmaDetalheScreen> with 
     final count = _presencaCount[alunoId] ?? 0;
     final initials = nome.trim().split(RegExp(r'\s+')).take(2).map((w) => w.isNotEmpty ? w[0] : '').join().toUpperCase();
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: kSurface, borderRadius: BorderRadius.circular(12), border: Border.all(color: kBorder)),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: kPrimary.withOpacity(0.2),
-            child: Text(initials.isEmpty ? '?' : initials,
-                style: TextStyle(color: kPrimary, fontSize: 13, fontWeight: FontWeight.w800)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(nome, style: TextStyle(color: kText1, fontSize: 14, fontWeight: FontWeight.w600)),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(color: kPrimary.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-            child: Column(
-              children: [
-                Text('$count', style: TextStyle(color: kPrimary, fontSize: 15, fontWeight: FontWeight.w800)),
-                Text('presenças', style: TextStyle(color: kText2, fontSize: 9)),
-              ],
+    return Dismissible(
+      key: Key(alunoId),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(color: kDanger.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        child: Icon(Icons.person_remove_rounded, color: kDanger),
+      ),
+      confirmDismiss: (_) async {
+        await _desmatricularAluno(a);
+        return false;
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: kSurface, borderRadius: BorderRadius.circular(12), border: Border.all(color: kBorder)),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: kPrimary.withOpacity(0.2),
+              child: Text(initials.isEmpty ? '?' : initials,
+                  style: TextStyle(color: kPrimary, fontSize: 13, fontWeight: FontWeight.w800)),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(nome, style: TextStyle(color: kText1, fontSize: 14, fontWeight: FontWeight.w600)),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(color: kPrimary.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+              child: Column(
+                children: [
+                  Text('$count', style: TextStyle(color: kPrimary, fontSize: 15, fontWeight: FontWeight.w800)),
+                  Text('presenças', style: TextStyle(color: kText2, fontSize: 9)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -470,6 +506,201 @@ class _AdminTurmaDetalheScreenState extends State<AdminTurmaDetalheScreen> with 
     );
   }
 
+  // ── MATRÍCULA ─────────────────────────────────────────
+
+  Future<void> _abrirMatricula() async {
+    final turmaId = widget.turmaId;
+    final alunosNaTurma = _alunos.map((a) => a['alunoId']?.toString() ?? '').toSet();
+
+    final matriculou = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _MatriculaSheet(turmaId: turmaId, alunosJaMatriculados: alunosNaTurma),
+    );
+    if (matriculou == true) _load();
+  }
+
+  Future<void> _desmatricularAluno(Map<String, dynamic> a) async {
+    final nome = a['nomeAluno'] as String? ?? '';
+    final matriculaId = a['matriculaId']?.toString() ?? '';
+    if (matriculaId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: const Text('ID de matrícula não encontrado.'), backgroundColor: kDanger, behavior: SnackBarBehavior.floating),
+      );
+      return;
+    }
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: kSurface,
+        title: Text('Remover aluno', style: TextStyle(color: kText1)),
+        content: Text('Deseja remover $nome desta turma?', style: TextStyle(color: kText2)),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text('Cancelar', style: TextStyle(color: kText2))),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('Remover', style: TextStyle(color: kDanger, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    try {
+      await dio.delete('/api/matriculas/$matriculaId');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$nome removido da turma.'), backgroundColor: kSuccess, behavior: SnackBarBehavior.floating),
+        );
+        _load();
+      }
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: const Text('Erro ao remover aluno.'), backgroundColor: kDanger, behavior: SnackBarBehavior.floating),
+      );
+    }
+  }
+
+  // ── ABA HORÁRIOS ──────────────────────────────────────
+
+  static const _diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+  Widget _abaHorarios() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Row(children: [
+            Text('Horários da turma', style: TextStyle(color: kText2, fontSize: 13, fontWeight: FontWeight.w600)),
+            const Spacer(),
+            GestureDetector(
+              onTap: () => _abrirHorarioForm(),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(color: kPrimary.withOpacity(0.12), borderRadius: BorderRadius.circular(8)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.add_rounded, color: kPrimary, size: 14),
+                  const SizedBox(width: 4),
+                  Text('Novo horário', style: TextStyle(color: kPrimary, fontSize: 12, fontWeight: FontWeight.w700)),
+                ]),
+              ),
+            ),
+          ]),
+        ),
+        Expanded(
+          child: _horarios.isEmpty
+              ? Center(
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.schedule_rounded, color: kText2, size: 48),
+                    const SizedBox(height: 12),
+                    Text('Nenhum horário cadastrado', style: TextStyle(color: kText2, fontSize: 14)),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () => _abrirHorarioForm(),
+                      child: Text('Adicionar horário', style: TextStyle(color: kPrimary)),
+                    ),
+                  ]),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: _horarios.length,
+                  itemBuilder: (_, i) => _buildHorarioCard(_horarios[i]),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHorarioCard(Map<String, dynamic> h) {
+    final dia = (h['diaSemana'] as num?)?.toInt() ?? 0;
+    final diaLabel = dia >= 0 && dia < _diasSemana.length ? _diasSemana[dia] : '?';
+    final inicio = h['horaInicio']?.toString().substring(0, 5) ?? '--:--';
+    final fim = h['horaFim']?.toString().substring(0, 5) ?? '--:--';
+    final sala = h['sala'] as String?;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: kSurface, borderRadius: BorderRadius.circular(12), border: Border.all(color: kBorder)),
+      child: Row(children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(color: kPrimary.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Text(diaLabel, style: TextStyle(color: kPrimary, fontSize: 13, fontWeight: FontWeight.w800)),
+          ]),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('$inicio – $fim', style: TextStyle(color: kText1, fontSize: 15, fontWeight: FontWeight.w700)),
+            if (sala != null && sala.isNotEmpty)
+              Text('Sala: $sala', style: TextStyle(color: kText2, fontSize: 12)),
+          ]),
+        ),
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          GestureDetector(
+            onTap: () => _abrirHorarioForm(horario: h),
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(color: kPrimary.withOpacity(0.10), borderRadius: BorderRadius.circular(8)),
+              child: Icon(Icons.edit_rounded, color: kPrimary, size: 16),
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => _deletarHorario(h),
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(color: kDanger.withOpacity(0.10), borderRadius: BorderRadius.circular(8)),
+              child: Icon(Icons.delete_outline_rounded, color: kDanger, size: 16),
+            ),
+          ),
+        ]),
+      ]),
+    );
+  }
+
+  Future<void> _abrirHorarioForm({Map<String, dynamic>? horario}) async {
+    final turmaId = widget.turmaId;
+    final salvou = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _HorarioFormSheet(turmaId: turmaId, horario: horario),
+    );
+    if (salvou == true) _load();
+  }
+
+  Future<void> _deletarHorario(Map<String, dynamic> h) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: kSurface,
+        title: Text('Remover horário', style: TextStyle(color: kText1)),
+        content: Text('Deseja remover este horário da turma?', style: TextStyle(color: kText2)),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text('Cancelar', style: TextStyle(color: kText2))),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('Remover', style: TextStyle(color: kDanger, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    try {
+      await dio.delete('/api/horarios/${h['id']}');
+      if (mounted) _load();
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: const Text('Erro ao remover horário.'), backgroundColor: kDanger, behavior: SnackBarBehavior.floating),
+      );
+    }
+  }
+
   Widget _buildPresencaCard(Map<String, dynamic> a) {
     final alunoId = a['alunoId']?.toString() ?? '';
     final nome = a['nomeAluno'] as String? ?? '';
@@ -527,6 +758,385 @@ class _AdminTurmaDetalheScreenState extends State<AdminTurmaDetalheScreen> with 
                     : const Text('Marcar'),
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Sheet: Matricular aluno ──────────────────────────────────────────────────
+
+class _MatriculaSheet extends StatefulWidget {
+  final String turmaId;
+  final Set<String> alunosJaMatriculados;
+  const _MatriculaSheet({required this.turmaId, required this.alunosJaMatriculados});
+
+  @override
+  State<_MatriculaSheet> createState() => _MatriculaSheetState();
+}
+
+class _MatriculaSheetState extends State<_MatriculaSheet> {
+  final _busca = TextEditingController();
+  List<Map<String, dynamic>> _todos = [];
+  List<Map<String, dynamic>> _filtrados = [];
+  bool _loading = true;
+  bool _salvando = false;
+  String? _selecionadoId;
+
+  @override
+  void initState() {
+    super.initState();
+    _busca.addListener(_filtrar);
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _busca.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    try {
+      final res = await dio.get('/api/alunos', queryParameters: {'pageSize': 200, 'ativo': true});
+      final dados = res.data['dados'];
+      final list = dados is List ? dados : (dados is Map ? (dados['itens'] as List? ?? []) : []);
+      final todos = list.cast<Map<String, dynamic>>();
+      final disponiveis = todos.where((a) => !widget.alunosJaMatriculados.contains(a['id']?.toString() ?? '')).toList();
+      if (mounted) {
+        setState(() {
+          _todos = disponiveis;
+          _filtrar();
+        });
+      }
+    } catch (_) {} finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _filtrar() {
+    final q = _busca.text.trim().toLowerCase();
+    setState(() {
+      _filtrados = q.isEmpty
+          ? List.from(_todos)
+          : _todos.where((a) => (a['nome'] as String? ?? '').toLowerCase().contains(q)).toList();
+    });
+  }
+
+  Future<void> _matricular() async {
+    if (_selecionadoId == null) return;
+    setState(() => _salvando = true);
+    try {
+      await dio.post('/api/matriculas', data: {
+        'alunoId': _selecionadoId,
+        'turmaId': widget.turmaId,
+      });
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (e) {
+      String msg = 'Erro ao matricular aluno.';
+      try { msg = ((e as dynamic).response?.data as Map?)?['mensagem'] ?? msg; } catch (_) {}
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg), backgroundColor: kDanger, behavior: SnackBarBehavior.floating),
+      );
+    } finally {
+      if (mounted) setState(() => _salvando = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    return Container(
+      decoration: BoxDecoration(color: kBg, borderRadius: const BorderRadius.vertical(top: Radius.circular(20))),
+      padding: EdgeInsets.fromLTRB(20, 0, 20, 24 + bottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 12),
+          Container(width: 40, height: 4, decoration: BoxDecoration(color: kBorder, borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 16),
+          Row(children: [
+            Text('Matricular aluno', style: TextStyle(color: kText1, fontSize: 18, fontWeight: FontWeight.w800)),
+            const Spacer(),
+            if (_salvando)
+              const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+            else
+              TextButton(
+                onPressed: _selecionadoId == null ? null : _matricular,
+                style: TextButton.styleFrom(
+                  backgroundColor: _selecionadoId != null ? kPrimary.withOpacity(0.12) : Colors.transparent,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: Text('Confirmar', style: TextStyle(color: _selecionadoId != null ? kPrimary : kText2, fontWeight: FontWeight.w700)),
+              ),
+          ]),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _busca,
+            style: TextStyle(color: kText1),
+            decoration: InputDecoration(
+              hintText: 'Buscar aluno...',
+              hintStyle: TextStyle(color: kText2),
+              prefixIcon: Icon(Icons.search, color: kText2),
+              filled: true, fillColor: kSurface,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kBorder)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kBorder)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kPrimary)),
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (_loading)
+            const Padding(padding: EdgeInsets.symmetric(vertical: 32), child: CircularProgressIndicator())
+          else if (_filtrados.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              child: Text('Nenhum aluno disponível.', style: TextStyle(color: kText2)),
+            )
+          else
+            ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.4),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _filtrados.length,
+                itemBuilder: (_, i) {
+                  final a = _filtrados[i];
+                  final id = a['id']?.toString() ?? '';
+                  final nome = a['nome'] as String? ?? '';
+                  final sel = _selecionadoId == id;
+                  return GestureDetector(
+                    onTap: () => setState(() => _selecionadoId = sel ? null : id),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: sel ? kPrimary.withOpacity(0.12) : kSurface,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: sel ? kPrimary : kBorder),
+                      ),
+                      child: Row(children: [
+                        Expanded(child: Text(nome, style: TextStyle(color: kText1, fontSize: 14, fontWeight: FontWeight.w600))),
+                        if (sel) Icon(Icons.check_circle_rounded, color: kPrimary, size: 18),
+                      ]),
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Sheet: Formulário de Horário ─────────────────────────────────────────────
+
+class _HorarioFormSheet extends StatefulWidget {
+  final String turmaId;
+  final Map<String, dynamic>? horario;
+  const _HorarioFormSheet({required this.turmaId, this.horario});
+
+  @override
+  State<_HorarioFormSheet> createState() => _HorarioFormSheetState();
+}
+
+class _HorarioFormSheetState extends State<_HorarioFormSheet> {
+  static const _dias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+  final _salaCtrl = TextEditingController();
+
+  int? _diaSemana;
+  TimeOfDay? _inicio;
+  TimeOfDay? _fim;
+  bool _salvando = false;
+
+  bool get _editando => widget.horario != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_editando) {
+      final h = widget.horario!;
+      _diaSemana = (h['diaSemana'] as num?)?.toInt();
+      _salaCtrl.text = h['sala'] as String? ?? '';
+      final inicioStr = h['horaInicio']?.toString() ?? '';
+      final fimStr = h['horaFim']?.toString() ?? '';
+      if (inicioStr.length >= 5) {
+        final parts = inicioStr.split(':');
+        _inicio = TimeOfDay(hour: int.tryParse(parts[0]) ?? 0, minute: int.tryParse(parts[1]) ?? 0);
+      }
+      if (fimStr.length >= 5) {
+        final parts = fimStr.split(':');
+        _fim = TimeOfDay(hour: int.tryParse(parts[0]) ?? 0, minute: int.tryParse(parts[1]) ?? 0);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _salaCtrl.dispose();
+    super.dispose();
+  }
+
+  String _formatTime(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:00';
+
+  Future<void> _pickTime(bool isInicio) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: isInicio ? (_inicio ?? const TimeOfDay(hour: 8, minute: 0)) : (_fim ?? const TimeOfDay(hour: 9, minute: 0)),
+      builder: (ctx, child) => Theme(
+        data: ThemeData.dark().copyWith(colorScheme: ColorScheme.dark(primary: kPrimary, surface: kSurface)),
+        child: child!,
+      ),
+    );
+    if (picked != null && mounted) setState(() => isInicio ? _inicio = picked : _fim = picked);
+  }
+
+  Future<void> _salvar() async {
+    if (_diaSemana == null || _inicio == null || _fim == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: const Text('Preencha dia, horário de início e fim.'), backgroundColor: kDanger, behavior: SnackBarBehavior.floating),
+      );
+      return;
+    }
+    setState(() => _salvando = true);
+    try {
+      final body = {
+        'turmaId': widget.turmaId,
+        'diaSemana': _diaSemana,
+        'horaInicio': _formatTime(_inicio!),
+        'horaFim': _formatTime(_fim!),
+        if (_salaCtrl.text.trim().isNotEmpty) 'sala': _salaCtrl.text.trim(),
+      };
+      if (_editando) {
+        await dio.put('/api/horarios/${widget.horario!['id']}', data: body);
+      } else {
+        await dio.post('/api/horarios', data: body);
+      }
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (e) {
+      String msg = _editando ? 'Erro ao editar horário.' : 'Erro ao criar horário.';
+      try { msg = ((e as dynamic).response?.data as Map?)?['mensagem'] ?? msg; } catch (_) {}
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg), backgroundColor: kDanger, behavior: SnackBarBehavior.floating),
+      );
+    } finally {
+      if (mounted) setState(() => _salvando = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    return Container(
+      decoration: BoxDecoration(color: kBg, borderRadius: const BorderRadius.vertical(top: Radius.circular(20))),
+      padding: EdgeInsets.fromLTRB(20, 0, 20, 24 + bottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 12),
+          Container(width: 40, height: 4, decoration: BoxDecoration(color: kBorder, borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 16),
+          Row(children: [
+            Text(_editando ? 'Editar Horário' : 'Novo Horário', style: TextStyle(color: kText1, fontSize: 18, fontWeight: FontWeight.w800)),
+            const Spacer(),
+            if (_salvando)
+              const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+            else
+              TextButton(
+                onPressed: _salvar,
+                style: TextButton.styleFrom(
+                  backgroundColor: kPrimary.withOpacity(0.12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: Text('Salvar', style: TextStyle(color: kPrimary, fontWeight: FontWeight.w700)),
+              ),
+          ]),
+          const SizedBox(height: 20),
+          // Dia da semana
+          DropdownButtonFormField<int>(
+            value: _diaSemana,
+            decoration: InputDecoration(
+              labelText: 'Dia da semana',
+              labelStyle: TextStyle(color: kText2, fontSize: 13),
+              prefixIcon: Icon(Icons.calendar_today_rounded, color: kText2, size: 18),
+              filled: true, fillColor: kSurface,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kBorder)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kBorder)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kPrimary, width: 1.5)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            ),
+            dropdownColor: kSurface,
+            style: TextStyle(color: kText1, fontSize: 15),
+            items: List.generate(7, (i) => DropdownMenuItem(value: i, child: Text(_dias[i], style: TextStyle(color: kText1)))),
+            onChanged: (v) => setState(() => _diaSemana = v),
+          ),
+          const SizedBox(height: 14),
+          // Horários
+          Row(children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: () => _pickTime(true),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: kSurface, borderRadius: BorderRadius.circular(12), border: Border.all(color: kBorder),
+                  ),
+                  child: Row(children: [
+                    Icon(Icons.access_time_rounded, color: kText2, size: 18),
+                    const SizedBox(width: 8),
+                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Início', style: TextStyle(color: kText2, fontSize: 11)),
+                      Text(
+                        _inicio != null ? _formatTime(_inicio!).substring(0, 5) : '--:--',
+                        style: TextStyle(color: _inicio != null ? kText1 : kText2, fontSize: 16, fontWeight: FontWeight.w700),
+                      ),
+                    ]),
+                  ]),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: GestureDetector(
+                onTap: () => _pickTime(false),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: kSurface, borderRadius: BorderRadius.circular(12), border: Border.all(color: kBorder),
+                  ),
+                  child: Row(children: [
+                    Icon(Icons.access_time_filled_rounded, color: kText2, size: 18),
+                    const SizedBox(width: 8),
+                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Fim', style: TextStyle(color: kText2, fontSize: 11)),
+                      Text(
+                        _fim != null ? _formatTime(_fim!).substring(0, 5) : '--:--',
+                        style: TextStyle(color: _fim != null ? kText1 : kText2, fontSize: 16, fontWeight: FontWeight.w700),
+                      ),
+                    ]),
+                  ]),
+                ),
+              ),
+            ),
+          ]),
+          const SizedBox(height: 14),
+          TextFormField(
+            controller: _salaCtrl,
+            style: TextStyle(color: kText1, fontSize: 15),
+            decoration: InputDecoration(
+              labelText: 'Sala (opcional)',
+              labelStyle: TextStyle(color: kText2, fontSize: 13),
+              prefixIcon: Icon(Icons.room_rounded, color: kText2, size: 18),
+              filled: true, fillColor: kSurface,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kBorder)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kBorder)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kPrimary, width: 1.5)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            ),
+          ),
         ],
       ),
     );

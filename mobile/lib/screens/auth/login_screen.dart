@@ -249,6 +249,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  onPressed: () => context.push('/cadastrar'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: kPrimary,
+                    side: BorderSide(color: kPrimary.withOpacity(0.4)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Criar minha academia grátis', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                ),
               ],
             ),
           ),

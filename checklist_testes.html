@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Checklist de Testes — Academia Fight</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f1117;
+    color: #e2e8f0;
+    min-height: 100vh;
+    padding: 32px 16px 80px;
+  }
+
+  .page {
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  header {
+    margin-bottom: 32px;
+  }
+
+  header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #f8fafc;
+    margin-bottom: 4px;
+  }
+
+  header p {
+    font-size: 13px;
+    color: #64748b;
+  }
+
+  .progress-bar-wrap {
+    background: #1e2433;
+    border-radius: 99px;
+    height: 8px;
+    margin: 16px 0 6px;
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #6366f1, #818cf8);
+    border-radius: 99px;
+    transition: width 0.3s ease;
+  }
+
+  .progress-label {
+    font-size: 12px;
+    color: #64748b;
+    text-align: right;
+  }
+
+  .controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+
+  .controls button {
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid #2d3748;
+    background: #1e2433;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .controls button:hover { background: #2d3748; color: #e2e8f0; }
+
+  .section {
+    margin-bottom: 24px;
+    background: #161b27;
+    border: 1px solid #1e2a3a;
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    cursor: pointer;
+    user-select: none;
+    gap: 12px;
+  }
+
+  .section-header:hover { background: #1a2030; }
+
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #f1f5f9;
+  }
+
+  .section-title .icon {
+    font-size: 16px;
+  }
+
+  .section-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 99px;
+    background: #1e2a3a;
+    color: #64748b;
+    white-space: nowrap;
+  }
+
+  .section-badge.done { background: #14532d22; color: #4ade80; border: 1px solid #166534; }
+
+  .section-arrow {
+    font-size: 12px;
+    color: #475569;
+    transition: transform 0.2s;
+  }
+
+  .section.collapsed .section-arrow { transform: rotate(-90deg); }
+
+  .section-body {
+    padding: 0 18px 14px;
+  }
+
+  .section.collapsed .section-body { display: none; }
+
+  .group-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    color: #475569;
+    text-transform: uppercase;
+    margin: 14px 0 8px;
+  }
+
+  .item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.12s;
+    position: relative;
+  }
+
+  .item:hover { background: #1e2a3a; }
+
+  .item input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 17px;
+    height: 17px;
+    min-width: 17px;
+    border: 2px solid #334155;
+    border-radius: 5px;
+    background: #0f1117;
+    cursor: pointer;
+    margin-top: 1px;
+    transition: all 0.15s;
+    position: relative;
+  }
+
+  .item input[type="checkbox"]:checked {
+    background: #6366f1;
+    border-color: #6366f1;
+  }
+
+  .item input[type="checkbox"]:checked::after {
+    content: '';
+    display: block;
+    width: 4px;
+    height: 8px;
+    border: 2px solid white;
+    border-top: none;
+    border-left: none;
+    transform: rotate(45deg) translate(1px, -1px);
+    margin: 1px auto 0;
+  }
+
+  .item-text {
+    flex: 1;
+    font-size: 13.5px;
+    color: #cbd5e1;
+    line-height: 1.45;
+    transition: color 0.15s;
+  }
+
+  .item.checked .item-text {
+    color: #475569;
+    text-decoration: line-through;
+    text-decoration-color: #334155;
+  }
+
+  .item-tag {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 99px;
+    white-space: nowrap;
+    margin-top: 2px;
+  }
+
+  .tag-backend { background: #1e3a5f; color: #60a5fa; }
+  .tag-mobile  { background: #1e3a2f; color: #4ade80; }
+  .tag-bug     { background: #3a1e1e; color: #f87171; }
+  .tag-critico { background: #3a1e1e; color: #f87171; border: 1px solid #7f1d1d; }
+
+  .divider {
+    height: 1px;
+    background: #1e2a3a;
+    margin: 8px 0;
+  }
+
+  .note {
+    font-size: 11.5px;
+    color: #475569;
+    margin-top: 4px;
+    padding-left: 27px;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <h1>Checklist de Testes — Academia Fight SaaS</h1>
+    <p>Marque cada item conforme for testando. Estado salvo no navegador (localStorage).</p>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="bar"></div>
+    </div>
+    <div class="progress-label" id="progress-label">0 / 0 concluídos</div>
+  </header>
+
+  <div class="controls">
+    <button onclick="expandAll()">Expandir tudo</button>
+    <button onclick="collapseAll()">Recolher tudo</button>
+    <button onclick="showPending()">Ver pendentes</button>
+    <button onclick="showAll()">Ver todos</button>
+    <button onclick="resetAll()" style="color:#f87171;border-color:#7f1d1d;">Limpar tudo</button>
+  </div>
+
+  <!-- ─────────────── BACKEND ─────────────── -->
+
+  <div class="section" id="s-auth">
+    <div class="section-header" onclick="toggle('s-auth')">
+      <div class="section-title"><span class="icon">🔐</span> Auth — Backend</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="section-badge" id="badge-s-auth"></span>
+        <span class="section-arrow">▼</span>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="group-label">Registro & Login</div>
+      <label class="item"><input type="checkbox" data-id="auth-1"><span class="item-text">POST /api/auth/register — fluxo feliz (criar academia + admin)</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="auth-2"><span class="item-text">POST /api/auth/register — e-mail duplicado retorna erro</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="auth-3"><span class="item-text">POST /api/auth/login — admin válido retorna accessToken + refreshToken</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="auth-4"><span class="item-text">POST /api/auth/login — senha errada retorna erro</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="auth-5"><span class="item-text">POST /api/auth/login — e-mail não cadastrado retorna erro</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="auth-6"><span class="item-text">POST /api/auth/login — aluno sem e-mail consegue logar (fix: email ?? "")</span><span class="item-tag tag-critico">crítico</span></label>
+      <div class="group-label">Tokens</div>
+      <label class="item"><input type="checkbox" data-id="auth-7"><span class="item-text">POST /api/auth/refresh — retorna novos tokens com refresh válido</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="auth-8"><span class="item-text">POST /api/auth/refresh — refresh token inválido/adulterado retorna erro</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="auth-9"><span class="item-text">POST /api/auth/refresh — refresh token expirado retorna erro</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="auth-10"><span class="item-text">POST /api/auth/refresh — funciona para aluno sem e-mail (fix: busca por sub)</span><span class="item-tag tag-critico">crítico</span></label>
+      <div class="group-label">Senha</div>
+      <label class="item"><input type="checkbox" data-id="auth-11"><span class="item-text">POST /api/auth/primeiro-acesso — token válido → define senha com sucesso</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="auth-12"><span class="item-text">POST /api/auth/primeiro-acesso — token inválido retorna erro</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="auth-13"><span class="item-text">POST /api/auth/alterar-senha — senha atual correta atualiza com sucesso</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="auth-14"><span class="item-text">POST /api/auth/alterar-senha — senha atual errada retorna erro</span><span class="item-tag tag-backend">backend</span></label>
+    </div>
+  </div>
+
+  <div class="section" id="s-alunos-be">
+    <div class="section-header" onclick="toggle('s-alunos-be')">
+      <div class="section-title"><span class="icon">🥋</span> Alunos — Backend</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="section-badge" id="badge-s-alunos-be"></span>
+        <span class="section-arrow">▼</span>
+      </div>
+    </div>
+    <div class="section-body">
+      <label class="item"><input type="checkbox" data-id="aluno-be-1"><span class="item-text">POST /api/alunos — criar aluno completo (com e-mail, plano, data nascimento)</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="aluno-be-2"><span class="item-text">POST /api/alunos — criar aluno sem e-mail (campos opcionais)</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="aluno-be-3"><span class="item-text">POST /api/alunos — nome duplicado na mesma academia retorna erro</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="aluno-be-4"><span class="item-text">GET /api/alunos — lista paginada retorna corretamente</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="aluno-be-5"><span class="item-text">GET /api/alunos/{id} — retorna detalhes do aluno</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="aluno-be-6"><span class="item-text">GET /api/alunos/{id} — aluno de outra academia retorna 404 (multi-tenant)</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="aluno-be-7"><span class="item-text">PUT /api/alunos/{id} — atualizar dados com sucesso</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="aluno-be-8"><span class="item-text">DELETE /api/alunos/{id} — soft delete (inativar)</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="aluno-be-9"><span class="item-text">POST /api/alunos/{id}/plano — vincular plano de mensalidade</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="aluno-be-10"><span class="item-text">GET /api/alunos/{id}/financeiro — retorna parcelas do aluno</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="aluno-be-11"><span class="item-text">POST /api/presencas — marcar presença do aluno</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="aluno-be-12"><span class="item-text">GET /api/alunos/{id}/presencas — retorna histórico de presenças</span><span class="item-tag tag-backend">backend</span></label>
+    </div>
+  </div>
+
+  <div class="section" id="s-turmas-be">
+    <div class="section-header" onclick="toggle('s-turmas-be')">
+      <div class="section-title"><span class="icon">📋</span> Turmas & Matrículas — Backend</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="section-badge" id="badge-s-turmas-be"></span>
+        <span class="section-arrow">▼</span>
+      </div>
+    </div>
+    <div class="section-body">
+      <label class="item"><input type="checkbox" data-id="turma-be-1"><span class="item-text">POST /api/turmas — criar turma com professor e modalidade válidos</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="turma-be-2"><span class="item-text">POST /api/turmas — professor inexistente retorna erro</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="turma-be-3"><span class="item-text">POST /api/turmas — modalidade inexistente retorna erro</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="turma-be-4"><span class="item-text">GET /api/turmas — lista todas as turmas da academia</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="turma-be-5"><span class="item-text">GET /api/turmas/{id} — retorna detalhes e alunos matriculados</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="turma-be-6"><span class="item-text">PUT /api/turmas/{id} — atualizar dados da turma</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="turma-be-7"><span class="item-text">DELETE /api/turmas/{id} — inativar turma (soft delete)</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="turma-be-8"><span class="item-text">POST /api/matriculas — matricular aluno em turma</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="turma-be-9"><span class="item-text">POST /api/matriculas — aluno já matriculado retorna erro</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="turma-be-10"><span class="item-text">DELETE /api/matriculas/{id} — desmatricular aluno</span><span class="item-tag tag-backend">backend</span></label>
+    </div>
+  </div>
+
+  <div class="section" id="s-fin-be">
+    <div class="section-header" onclick="toggle('s-fin-be')">
+      <div class="section-title"><span class="icon">💰</span> Financeiro & Planos — Backend</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="section-badge" id="badge-s-fin-be"></span>
+        <span class="section-arrow">▼</span>
+      </div>
+    </div>
+    <div class="section-body">
+      <label class="item"><input type="checkbox" data-id="fin-be-1"><span class="item-text">POST /api/planos — criar plano de mensalidade</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="fin-be-2"><span class="item-text">GET /api/planos — listar planos da academia</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="fin-be-3"><span class="item-text">PUT /api/planos/{id} — atualizar plano</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="fin-be-4"><span class="item-text">Geração automática de parcela ao vincular aluno ao plano</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="fin-be-5"><span class="item-text">GET /api/financeiro — listar parcelas paginadas com filtros</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="fin-be-6"><span class="item-text">POST /api/financeiro/{id}/pagar — registrar pagamento</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="fin-be-7"><span class="item-text">POST /api/financeiro/{id}/pagar — parcela já paga retorna erro (idempotência)</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="fin-be-8"><span class="item-text">DELETE /api/financeiro/{id} — cancelar parcela</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="fin-be-9"><span class="item-text">GET /api/financeiro/inadimplentes — listar alunos com parcelas vencidas</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="fin-be-10"><span class="item-text">GET /api/financeiro/relatorio — agregados mensais de receita</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="fin-be-11"><span class="item-text">Parcelas de outra academia são inacessíveis (isolamento multi-tenant)</span><span class="item-tag tag-backend">backend</span></label>
+      <label class="item"><input type="checkbox" data-id="fin-be-12"><span class="item-text">Plano sem dia de vencimento usa dia padrão configurado</span><span class="item-tag tag-backend">backend</span></label>
+    </div>
+  </div>
+
+  <!-- ─────────────── MOBILE ─────────────── -->
+
+  <div class="section" id="s-auth-mob">
+    <div class="section-header" onclick="toggle('s-auth-mob')">
+      <div class="section-title"><span class="icon">📱</span> Auth — Mobile</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="section-badge" id="badge-s-auth-mob"></span>
+        <span class="section-arrow">▼</span>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="group-label">Login Screen</div>
+      <label class="item"><input type="checkbox" data-id="m-auth-1"><span class="item-text">Login com admin válido → redireciona /admin/dashboard</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-auth-2"><span class="item-text">Login com professor → redireciona /professor/turmas</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-auth-3"><span class="item-text">Login com aluno → redireciona /aluno/perfil</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-auth-4"><span class="item-text">Login aluno sem e-mail não trava mais (bug corrigido)</span><span class="item-tag tag-critico">crítico</span></label>
+      <label class="item"><input type="checkbox" data-id="m-auth-5"><span class="item-text">Senha errada exibe mensagem de erro na tela</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-auth-6"><span class="item-text">Campos vazios — botão não submete / exibe validação</span><span class="item-tag tag-mobile">mobile</span></label>
+      <div class="group-label">Cadastro Screen</div>
+      <label class="item"><input type="checkbox" data-id="m-auth-7"><span class="item-text">Criar nova academia → preenchimento completo → sucesso</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-auth-8"><span class="item-text">Nome da academia preenche subdomínio automaticamente</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-auth-9"><span class="item-text">Validação: e-mail inválido, subdomínio curto, senhas divergentes</span><span class="item-tag tag-mobile">mobile</span></label>
+      <div class="group-label">Primeiro Acesso</div>
+      <label class="item"><input type="checkbox" data-id="m-auth-10"><span class="item-text">Token válido no link → formulário de nova senha aparece</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-auth-11"><span class="item-text">Token inválido → exibe erro claro</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-auth-12"><span class="item-text">Após definir senha → login funciona normalmente</span><span class="item-tag tag-critico">crítico</span></label>
+    </div>
+  </div>
+
+  <div class="section" id="s-dashboard-mob">
+    <div class="section-header" onclick="toggle('s-dashboard-mob')">
+      <div class="section-title"><span class="icon">🏠</span> Dashboard & Onboarding — Mobile</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="section-badge" id="badge-s-dashboard-mob"></span>
+        <span class="section-arrow">▼</span>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="group-label">Cards KPI</div>
+      <label class="item"><input type="checkbox" data-id="m-dash-1"><span class="item-text">Cards de totais (alunos, turmas, receita) carregam sem erro</span><span class="item-tag tag-mobile">mobile</span></label>
+      <div class="group-label">Onboarding — 5 steps em ordem</div>
+      <label class="item"><input type="checkbox" data-id="m-dash-2"><span class="item-text">Step 1: Criar modalidade — bottom sheet abre, erro real é exibido (não "Erro de conexão")</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-dash-3"><span class="item-text">Step 1: Criar modalidade — salvar com sucesso, step marca como feito</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-dash-4"><span class="item-text">Step 2: Criar plano — bottom sheet abre, valores e dia de vencimento aceitos</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-dash-5"><span class="item-text">Step 2: Criar plano — salvar com sucesso, step marca como feito</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-dash-6"><span class="item-text">Step 3: Cadastrar professor — navega para /admin/equipe/novo</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-dash-7"><span class="item-text">Step 3: Após criar professor → voltar ao dashboard marca step como feito</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-dash-8"><span class="item-text">Step 4: Criar turma — navega para /admin/turmas</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-dash-9"><span class="item-text">Step 5: Cadastrar aluno — navega para /admin/alunos/novo</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-dash-10"><span class="item-text">Todos os 5 steps concluídos → card de onboarding desaparece</span><span class="item-tag tag-mobile">mobile</span></label>
+    </div>
+  </div>
+
+  <div class="section" id="s-alunos-mob">
+    <div class="section-header" onclick="toggle('s-alunos-mob')">
+      <div class="section-title"><span class="icon">👤</span> Alunos — Mobile (Admin)</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="section-badge" id="badge-s-alunos-mob"></span>
+        <span class="section-arrow">▼</span>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="group-label">Lista de alunos</div>
+      <label class="item"><input type="checkbox" data-id="m-al-1"><span class="item-text">Lista carrega com scroll e paginação funcionando</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-al-2"><span class="item-text">Busca por nome filtra em tempo real</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-al-3"><span class="item-text">Filtro ativos/inativos funciona</span><span class="item-tag tag-mobile">mobile</span></label>
+      <div class="group-label">Criar aluno (aluno_criar_screen)</div>
+      <label class="item"><input type="checkbox" data-id="m-al-4"><span class="item-text">Campo telefone formata com máscara (XX) XXXXX-XXXX ao digitar</span><span class="item-tag tag-critico">crítico</span></label>
+      <label class="item"><input type="checkbox" data-id="m-al-5"><span class="item-text">Campo data nascimento formata com máscara DD/MM/AAAA ao digitar</span><span class="item-tag tag-critico">crítico</span></label>
+      <label class="item"><input type="checkbox" data-id="m-al-6"><span class="item-text">Data é convertida para AAAA-MM-DD antes de enviar ao backend</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-al-7"><span class="item-text">Dropdown de planos lista os planos cadastrados</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-al-8"><span class="item-text">Salvar sem nome — exibe "Campo obrigatório"</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-al-9"><span class="item-text">Salvar aluno completo — sucesso e volta para lista</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-al-10"><span class="item-text">Criar aluno sem e-mail — funciona (campo opcional)</span><span class="item-tag tag-mobile">mobile</span></label>
+      <div class="group-label">Detalhe do aluno</div>
+      <label class="item"><input type="checkbox" data-id="m-al-11"><span class="item-text">Dados pessoais, financeiro, presenças e graduações carregam</span><span class="item-tag tag-mobile">mobile</span></label>
+    </div>
+  </div>
+
+  <div class="section" id="s-equipe-mob">
+    <div class="section-header" onclick="toggle('s-equipe-mob')">
+      <div class="section-title"><span class="icon">👨‍🏫</span> Equipe (Funcionários) — Mobile</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="section-badge" id="badge-s-equipe-mob"></span>
+        <span class="section-arrow">▼</span>
+      </div>
+    </div>
+    <div class="section-body">
+      <label class="item"><input type="checkbox" data-id="m-eq-1"><span class="item-text">Lista de equipe carrega professores e admins</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-eq-2"><span class="item-text">Criar funcionário com perfil "Professor" — sucesso</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-eq-3"><span class="item-text">E-mail de primeiro acesso é enviado ao criar funcionário</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-eq-4"><span class="item-text">Professor criado aparece como opção ao criar turma</span><span class="item-tag tag-mobile">mobile</span></label>
+    </div>
+  </div>
+
+  <div class="section" id="s-turmas-mob">
+    <div class="section-header" onclick="toggle('s-turmas-mob')">
+      <div class="section-title"><span class="icon">🏃</span> Turmas — Mobile (Admin)</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="section-badge" id="badge-s-turmas-mob"></span>
+        <span class="section-arrow">▼</span>
+      </div>
+    </div>
+    <div class="section-body">
+      <label class="item"><input type="checkbox" data-id="m-tu-1"><span class="item-text">Lista de turmas carrega com modalidade e professor</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-tu-2"><span class="item-text">Criar turma — selecionar professor e modalidade (criados no onboarding)</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-tu-3"><span class="item-text">Detalhe da turma — lista alunos matriculados</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-tu-4"><span class="item-text">Matricular aluno em turma — sucesso</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-tu-5"><span class="item-text">Desmatricular aluno — sucesso</span><span class="item-tag tag-mobile">mobile</span></label>
+    </div>
+  </div>
+
+  <div class="section" id="s-fin-mob">
+    <div class="section-header" onclick="toggle('s-fin-mob')">
+      <div class="section-title"><span class="icon">💳</span> Financeiro — Mobile (Admin)</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="section-badge" id="badge-s-fin-mob"></span>
+        <span class="section-arrow">▼</span>
+      </div>
+    </div>
+    <div class="section-body">
+      <label class="item"><input type="checkbox" data-id="m-fi-1"><span class="item-text">Lista de parcelas carrega com status (pendente / pago / atrasado)</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-fi-2"><span class="item-text">Filtros por status e período funcionam</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-fi-3"><span class="item-text">Registrar pagamento de parcela — sucesso e status muda para pago</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-fi-4"><span class="item-text">Lista de inadimplentes carrega corretamente</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-fi-5"><span class="item-text">Relatório anual — gráfico de receita por mês renderiza</span><span class="item-tag tag-mobile">mobile</span></label>
+    </div>
+  </div>
+
+  <div class="section" id="s-prof-mob">
+    <div class="section-header" onclick="toggle('s-prof-mob')">
+      <div class="section-title"><span class="icon">🎓</span> Área Professor — Mobile</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="section-badge" id="badge-s-prof-mob"></span>
+        <span class="section-arrow">▼</span>
+      </div>
+    </div>
+    <div class="section-body">
+      <label class="item"><input type="checkbox" data-id="m-pr-1"><span class="item-text">Login como professor → área correta carrega</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-pr-2"><span class="item-text">Minhas turmas — lista apenas turmas do professor logado</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-pr-3"><span class="item-text">Horários — agenda semanal das turmas</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-pr-4"><span class="item-text">Chamada — marcar presença de alunos em uma aula</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-pr-5"><span class="item-text">Histórico de chamadas — ver presenças de aulas anteriores</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-pr-6"><span class="item-text">Graduação — selecionar aluno, selecionar faixa, graduar</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-pr-7"><span class="item-text">Perfil professor — ver dados; link para alterar senha</span><span class="item-tag tag-mobile">mobile</span></label>
+    </div>
+  </div>
+
+  <div class="section" id="s-aluno-mob">
+    <div class="section-header" onclick="toggle('s-aluno-mob')">
+      <div class="section-title"><span class="icon">🏅</span> Área Aluno — Mobile</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="section-badge" id="badge-s-aluno-mob"></span>
+        <span class="section-arrow">▼</span>
+      </div>
+    </div>
+    <div class="section-body">
+      <label class="item"><input type="checkbox" data-id="m-al2-1"><span class="item-text">Login como aluno → área correta carrega</span><span class="item-tag tag-critico">crítico</span></label>
+      <label class="item"><input type="checkbox" data-id="m-al2-2"><span class="item-text">Login como aluno sem e-mail → funciona sem crash</span><span class="item-tag tag-critico">crítico</span></label>
+      <label class="item"><input type="checkbox" data-id="m-al2-3"><span class="item-text">Perfil — dados pessoais e faixa atual exibidos corretamente</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-al2-4"><span class="item-text">Horários — turmas em que o aluno está matriculado</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-al2-5"><span class="item-text">Presenças — histórico e percentual de frequência</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-al2-6"><span class="item-text">Financeiro — parcelas pendentes e histórico de pagamentos</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-al2-7"><span class="item-text">Ranking — posição do aluno, XP e top da academia</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-al2-8"><span class="item-text">Graduações — histórico de faixas conquistadas</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-al2-9"><span class="item-text">Conquistas — badges desbloqueados aparecem</span><span class="item-tag tag-mobile">mobile</span></label>
+    </div>
+  </div>
+
+  <div class="section" id="s-extras-mob">
+    <div class="section-header" onclick="toggle('s-extras-mob')">
+      <div class="section-title"><span class="icon">⚙️</span> Extras — Mobile</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="section-badge" id="badge-s-extras-mob"></span>
+        <span class="section-arrow">▼</span>
+      </div>
+    </div>
+    <div class="section-body">
+      <label class="item"><input type="checkbox" data-id="m-ex-1"><span class="item-text">Faixas — listar, criar e ordenar faixas da academia</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-ex-2"><span class="item-text">Aniversariantes — lista do mês carrega</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-ex-3"><span class="item-text">Modelos de contrato — listar e criar modelo</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-ex-4"><span class="item-text">QR Scan — câmera abre, leitura do QR da catraca funciona</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-ex-5"><span class="item-text">Notificações — lista push recebidas, marcar como lida</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-ex-6"><span class="item-text">Configurações academia — editar dados e logo</span><span class="item-tag tag-mobile">mobile</span></label>
+      <label class="item"><input type="checkbox" data-id="m-ex-7"><span class="item-text">Alterar senha — senha atual correta → atualiza com sucesso</span><span class="item-tag tag-mobile">mobile</span></label>
+    </div>
+  </div>
+
+</div><!-- .page -->
+
+<script>
+  const STORE_KEY = 'aft_checklist_v1';
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch { return {}; }
+  }
+
+  function save(state) {
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+  }
+
+  function applyState() {
+    const state = load();
+    document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      const id = cb.dataset.id;
+      if (state[id]) { cb.checked = true; cb.closest('.item').classList.add('checked'); }
+    });
+    updateAll();
+  }
+
+  function toggle(id) {
+    const el = document.getElementById(id);
+    el.classList.toggle('collapsed');
+  }
+
+  function expandAll() {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('collapsed'));
+  }
+
+  function collapseAll() {
+    document.querySelectorAll('.section').forEach(s => s.classList.add('collapsed'));
+  }
+
+  function showPending() {
+    document.querySelectorAll('.item').forEach(item => {
+      item.style.display = item.classList.contains('checked') ? 'none' : '';
+    });
+    expandAll();
+  }
+
+  function showAll() {
+    document.querySelectorAll('.item').forEach(item => { item.style.display = ''; });
+  }
+
+  function resetAll() {
+    if (!confirm('Limpar todos os checks?')) return;
+    localStorage.removeItem(STORE_KEY);
+    document.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = false; });
+    document.querySelectorAll('.item').forEach(i => i.classList.remove('checked'));
+    updateAll();
+  }
+
+  function updateAll() {
+    const allChecks = document.querySelectorAll('input[type="checkbox"]');
+    const total = allChecks.length;
+    const done = [...allChecks].filter(c => c.checked).length;
+
+    document.getElementById('bar').style.width = total ? (done / total * 100) + '%' : '0%';
+    document.getElementById('progress-label').textContent = `${done} / ${total} concluídos`;
+
+    document.querySelectorAll('.section').forEach(sec => {
+      const checks = sec.querySelectorAll('input[type="checkbox"]');
+      const secDone = [...checks].filter(c => c.checked).length;
+      const badge = sec.querySelector('.section-badge');
+      badge.textContent = `${secDone} / ${checks.length}`;
+      badge.className = 'section-badge' + (secDone === checks.length && checks.length > 0 ? ' done' : '');
+    });
+  }
+
+  document.addEventListener('change', e => {
+    if (e.target.type !== 'checkbox') return;
+    const state = load();
+    const item = e.target.closest('.item');
+    if (e.target.checked) {
+      state[e.target.dataset.id] = true;
+      item.classList.add('checked');
+    } else {
+      delete state[e.target.dataset.id];
+      item.classList.remove('checked');
+    }
+    save(state);
+    updateAll();
+  });
+
+  applyState();
+</script>
+</body>
+</html>
